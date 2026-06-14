@@ -14,16 +14,204 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      children: {
+        Row: {
+          accent_region: string | null
+          age: number | null
+          avatar: string | null
+          coins: number
+          created_at: string
+          id: string
+          learning_goals: string | null
+          level: number
+          literacy_score: number
+          name: string
+          native_language: string | null
+          onboarded: boolean
+          parent_id: string
+          pet_level: number
+          pet_type: string | null
+          reading_level: string | null
+          school_year: string | null
+          streak: number
+          updated_at: string
+          xp: number
+        }
+        Insert: {
+          accent_region?: string | null
+          age?: number | null
+          avatar?: string | null
+          coins?: number
+          created_at?: string
+          id?: string
+          learning_goals?: string | null
+          level?: number
+          literacy_score?: number
+          name: string
+          native_language?: string | null
+          onboarded?: boolean
+          parent_id: string
+          pet_level?: number
+          pet_type?: string | null
+          reading_level?: string | null
+          school_year?: string | null
+          streak?: number
+          updated_at?: string
+          xp?: number
+        }
+        Update: {
+          accent_region?: string | null
+          age?: number | null
+          avatar?: string | null
+          coins?: number
+          created_at?: string
+          id?: string
+          learning_goals?: string | null
+          level?: number
+          literacy_score?: number
+          name?: string
+          native_language?: string | null
+          onboarded?: boolean
+          parent_id?: string
+          pet_level?: number
+          pet_type?: string | null
+          reading_level?: string | null
+          school_year?: string | null
+          streak?: number
+          updated_at?: string
+          xp?: number
+        }
+        Relationships: []
+      }
+      classroom_children: {
+        Row: {
+          child_id: string
+          classroom_id: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          child_id: string
+          classroom_id: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          child_id?: string
+          classroom_id?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classroom_children_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "classroom_children_classroom_id_fkey"
+            columns: ["classroom_id"]
+            isOneToOne: false
+            referencedRelation: "classrooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      classrooms: {
+        Row: {
+          created_at: string
+          id: string
+          join_code: string
+          name: string
+          teacher_id: string
+          updated_at: string
+          year_level: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          join_code?: string
+          name: string
+          teacher_id: string
+          updated_at?: string
+          year_level?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          join_code?: string
+          name?: string
+          teacher_id?: string
+          updated_at?: string
+          year_level?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "parent" | "teacher" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +338,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["parent", "teacher", "admin"],
+    },
   },
 } as const
