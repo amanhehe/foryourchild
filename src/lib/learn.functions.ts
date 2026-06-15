@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { createLovableAiGatewayProvider } from "./ai-gateway.server";
-import { generateText, Output } from "ai";
+import { generateText } from "ai";
 
 const MODEL = "google/gemini-3-flash-preview";
 
@@ -10,6 +10,14 @@ function provider() {
   const key = process.env.LOVABLE_API_KEY;
   if (!key) throw new Error("Missing LOVABLE_API_KEY");
   return createLovableAiGatewayProvider(key);
+}
+
+function parseJson(text: string): any {
+  const cleaned = text.replace(/```json/gi, "").replace(/```/g, "").trim();
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start === -1 || end === -1) throw new Error("No JSON found in response");
+  return JSON.parse(cleaned.slice(start, end + 1));
 }
 
 // Generate an adaptive list of practice words for a child.
@@ -25,29 +33,25 @@ export const getLesson = createServerFn({ method: "POST" })
     if (error || !child) throw new Error("Child not found");
 
     const gateway = provider();
-    const { output } = await generateText({
+    const { text } = await generateText({
       model: gateway(MODEL),
-      output: Output.object({
-        schema: z.object({
-          focusSound: z.string(),
-          words: z
-            .array(
-              z.object({
-                word: z.string(),
-                phonemes: z.string(),
-                hint: z.string(),
-              }),
-            )
-            .min(5)
-            .max(5),
-        }),
-      }),
       prompt: `You are a phonics tutor for ${child.name}, age ${child.age ?? 5}, reading level "${child.reading_level}".
 Create a short practice set of exactly 5 simple, age-appropriate words that all share one focus phoneme/sound.
-For each word give: the word (lowercase), its phonemes split with hyphens (e.g. "c-a-t"), and a one-line kid-friendly hint.
-Pick a focusSound like "short a", "sh digraph", etc. Keep words decodable for this level.`,
+Pick a focusSound like "short a", "sh digraph", etc. Keep words decodable for this level.
+Respond with ONLY valid JSON in exactly this shape (no markdown, no extra text):
+{"focusSound":"short a","words":[{"word":"cat","phonemes":"c-a-t","hint":"a furry pet"}]}
+The "words" array must contain exactly 5 items. Each word lowercase, phonemes split with hyphens, hint one short kid-friendly line.`,
     });
-    return { focusSound: output.focusSound, words: output.words, childName: child.name };
+    const out = parseJson(text);
+    return {
+      focusSound: String(out.focusSound ?? "phonics"),
+      words: (out.words ?? []).slice(0, 5).map((w: any) => ({
+        word: String(w.word ?? ""),
+        phonemes: String(w.phonemes ?? ""),
+        hint: String(w.hint ?? ""),
+      })),
+      childName: child.name,
+    };
   });
 
 // Score a child's spoken attempt against the target word.
@@ -64,22 +68,21 @@ export const scorePronunciation = createServerFn({ method: "POST" })
   )
   .handler(async ({ data }) => {
     const gateway = provider();
-    const { output } = await generateText({
+    const { text } = await generateText({
       model: gateway(MODEL),
-      output: Output.object({
-        schema: z.object({
-          correct: z.boolean(),
-          score: z.number().min(0).max(100),
-          feedback: z.string(),
-        }),
-      }),
       prompt: `A young child was asked to say the word "${data.targetWord}".
 A speech recogniser transcribed what they said as: "${data.heard || "(nothing clear)"}".
 Decide if they pronounced it correctly (allow for recogniser noise and close matches).
-Give a score 0-100 and a single short, warm, encouraging sentence of feedback a 5-year-old would love.
-If wrong, gently model the correct sounds.`,
+Respond with ONLY valid JSON in exactly this shape (no markdown, no extra text):
+{"correct":true,"score":90,"feedback":"Great job!"}
+"feedback" is a single short, warm, encouraging sentence a 5-year-old would love. If wrong, gently model the correct sounds.`,
     });
-    return output;
+    const out = parseJson(text);
+    return {
+      correct: Boolean(out.correct),
+      score: Number(out.score ?? 0),
+      feedback: String(out.feedback ?? "Nice try!"),
+    };
   });
 
 // Persist XP/coins earned in a session.
