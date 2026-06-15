@@ -214,6 +214,13 @@ function Dashboard() {
                   <Stat label="Coins" value={c.coins} />
                   <Stat label="Streak" value={`${c.streak}🔥`} />
                 </div>
+                <Link
+                  to="/learn/$childId"
+                  params={{ childId: c.id }}
+                  className="mt-4 block rounded-full bg-gradient-warm px-5 py-2.5 text-center font-bold text-primary-foreground shadow-soft transition-transform hover:scale-105"
+                >
+                  🎤 Start learning
+                </Link>
               </div>
             ))}
           </div>
