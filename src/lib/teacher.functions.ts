@@ -49,7 +49,8 @@ export const createClassroom = createServerFn({ method: "POST" })
 export const ensureTeacherRole = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { error } = await context.supabase
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
       .from("user_roles")
       .upsert({ user_id: context.userId, role: "teacher" }, { onConflict: "user_id,role" });
     if (error) throw error;
