@@ -13,6 +13,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedStoryChildIdRouteImport } from './routes/_authenticated/story.$childId'
 import { Route as AuthenticatedLearnChildIdRouteImport } from './routes/_authenticated/learn.$childId'
 
 const AuthRoute = AuthRouteImport.update({
@@ -34,6 +35,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedStoryChildIdRoute =
+  AuthenticatedStoryChildIdRouteImport.update({
+    id: '/story/$childId',
+    path: '/story/$childId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLearnChildIdRoute =
   AuthenticatedLearnChildIdRouteImport.update({
     id: '/learn/$childId',
@@ -46,12 +53,14 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/learn/$childId': typeof AuthenticatedLearnChildIdRoute
+  '/story/$childId': typeof AuthenticatedStoryChildIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/learn/$childId': typeof AuthenticatedLearnChildIdRoute
+  '/story/$childId': typeof AuthenticatedStoryChildIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -60,12 +69,18 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/learn/$childId': typeof AuthenticatedLearnChildIdRoute
+  '/_authenticated/story/$childId': typeof AuthenticatedStoryChildIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/auth' | '/dashboard' | '/learn/$childId'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/learn/$childId'
+    | '/story/$childId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/auth' | '/dashboard' | '/learn/$childId'
+  to: '/' | '/auth' | '/dashboard' | '/learn/$childId' | '/story/$childId'
   id:
     | '__root__'
     | '/'
@@ -73,6 +88,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/dashboard'
     | '/_authenticated/learn/$childId'
+    | '/_authenticated/story/$childId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -111,6 +127,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/story/$childId': {
+      id: '/_authenticated/story/$childId'
+      path: '/story/$childId'
+      fullPath: '/story/$childId'
+      preLoaderRoute: typeof AuthenticatedStoryChildIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/learn/$childId': {
       id: '/_authenticated/learn/$childId'
       path: '/learn/$childId'
@@ -124,11 +147,13 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedLearnChildIdRoute: typeof AuthenticatedLearnChildIdRoute
+  AuthenticatedStoryChildIdRoute: typeof AuthenticatedStoryChildIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedLearnChildIdRoute: AuthenticatedLearnChildIdRoute,
+  AuthenticatedStoryChildIdRoute: AuthenticatedStoryChildIdRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
