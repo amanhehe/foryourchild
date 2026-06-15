@@ -84,7 +84,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "AI Phonics Buddy is a voice-first literacy coach for ages 4–8. It listens to your child read, catches pronunciation mistakes, and adapts every lesson.",
       },
       { name: "author", content: "AI Phonics Buddy" },
-      { property: "og:title", content: "AI Phonics Buddy" },
+      { property: "og:title", content: "AI Phonics Buddy — A Reading Coach That Listens" },
       {
         property: "og:description",
         content:
@@ -92,6 +92,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "AI Phonics Buddy — A Reading Coach That Listens" },
+      { name: "description", content: "AI Phonics Buddy is an AI-powered literacy coach for young learners." },
+      { property: "og:description", content: "AI Phonics Buddy is an AI-powered literacy coach for young learners." },
+      { name: "twitter:description", content: "AI Phonics Buddy is an AI-powered literacy coach for young learners." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2174cc44-3311-4df9-9f29-3aaf9c7d7542/id-preview-b113fccc--fc4903de-d761-48fb-879b-5ccdfc4e6f15.lovable.app-1781525709604.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2174cc44-3311-4df9-9f29-3aaf9c7d7542/id-preview-b113fccc--fc4903de-d761-48fb-879b-5ccdfc4e6f15.lovable.app-1781525709604.png" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
