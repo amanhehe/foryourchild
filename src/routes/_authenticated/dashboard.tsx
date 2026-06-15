@@ -90,12 +90,20 @@ function Dashboard() {
           <img src={buddyOwl} alt="Buddy" width={36} height={36} className="h-9 w-9" />
           <span className="font-display text-lg font-bold">Parent Dashboard</span>
         </div>
-        <button
-          onClick={signOut}
-          className="rounded-full border-2 border-border px-4 py-2 text-sm font-bold transition-transform hover:scale-105"
-        >
-          Sign out
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/teacher"
+            className="rounded-full border-2 border-border px-4 py-2 text-sm font-bold transition-transform hover:scale-105"
+          >
+            🍎 Teacher
+          </Link>
+          <button
+            onClick={signOut}
+            className="rounded-full border-2 border-border px-4 py-2 text-sm font-bold transition-transform hover:scale-105"
+          >
+            Sign out
+          </button>
+        </div>
       </header>
 
       <main className="mx-auto max-w-5xl px-5 pb-16">
