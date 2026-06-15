@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
@@ -214,6 +214,13 @@ function Dashboard() {
                   <Stat label="Coins" value={c.coins} />
                   <Stat label="Streak" value={`${c.streak}🔥`} />
                 </div>
+                <Link
+                  to="/learn/$childId"
+                  params={{ childId: c.id }}
+                  className="mt-4 block rounded-full bg-gradient-warm px-5 py-2.5 text-center font-bold text-primary-foreground shadow-soft transition-transform hover:scale-105"
+                >
+                  🎤 Start learning
+                </Link>
               </div>
             ))}
           </div>
