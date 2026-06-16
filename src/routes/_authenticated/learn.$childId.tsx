@@ -55,7 +55,6 @@ function LearnPage() {
   const [correctCount, setCorrectCount] = useState(0);
   const [coins, setCoins] = useState(0);
   const [images, setImages] = useState<Record<string, string>>({});
-  const [imageLoading, setImageLoading] = useState(false);
   const recRef = useRef<any>(null);
   const speechSupported = typeof window !== "undefined" && !!getRecognition();
 
@@ -92,14 +91,12 @@ function LearnPage() {
     const w = current.word.toLowerCase();
     if (images[w]) return;
     let cancelled = false;
-    setImageLoading(true);
     fetchImage({ data: { word: w } })
       .then((r) => {
         if (!cancelled) setImages((prev) => ({ ...prev, [w]: r.dataUrl }));
       })
       .catch(() => {})
       .finally(() => {
-        if (!cancelled) setImageLoading(false);
       });
     return () => {
       cancelled = true;
