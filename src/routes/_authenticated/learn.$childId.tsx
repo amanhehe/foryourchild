@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getLesson, scorePronunciation, awardProgress } from "@/lib/learn.functions";
+import { getWordImage } from "@/lib/images.functions";
 import { toast } from "sonner";
 import buddyOwl from "@/assets/buddy-owl.png";
 
@@ -10,6 +11,7 @@ export const Route = createFileRoute("/_authenticated/learn/$childId")({
 });
 
 type Word = { word: string; phonemes: string; hint: string };
+type Stage = "words" | "reading";
 type Phase = "loading" | "ready" | "listening" | "checking" | "result" | "done";
 
 function speak(text: string, rate = 0.85) {
@@ -38,26 +40,39 @@ function LearnPage() {
   const fetchLesson = useServerFn(getLesson);
   const score = useServerFn(scorePronunciation);
   const award = useServerFn(awardProgress);
+  const fetchImage = useServerFn(getWordImage);
 
   const [phase, setPhase] = useState<Phase>("loading");
+  const [stage, setStage] = useState<Stage>("words");
   const [focusSound, setFocusSound] = useState("");
   const [childName, setChildName] = useState("");
   const [words, setWords] = useState<Word[]>([]);
+  const [sentences, setSentences] = useState<string[]>([]);
   const [idx, setIdx] = useState(0);
+  const [sIdx, setSIdx] = useState(0);
   const [feedback, setFeedback] = useState("");
   const [lastCorrect, setLastCorrect] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
   const [coins, setCoins] = useState(0);
+  const [images, setImages] = useState<Record<string, string>>({});
+  const [imageLoading, setImageLoading] = useState(false);
   const recRef = useRef<any>(null);
   const speechSupported = typeof window !== "undefined" && !!getRecognition();
 
   const load = useCallback(async () => {
     setPhase("loading");
+    setStage("words");
+    setIdx(0);
+    setSIdx(0);
+    setCorrectCount(0);
+    setCoins(0);
+    setFeedback("");
     try {
       const res = await fetchLesson({ data: { childId } });
       setFocusSound(res.focusSound);
       setChildName(res.childName);
       setWords(res.words);
+      setSentences(res.sentences ?? []);
       setPhase("ready");
     } catch {
       toast.error("Couldn't start the lesson. Try again!");
@@ -69,8 +84,29 @@ function LearnPage() {
   }, [load]);
 
   const current = words[idx];
+  const currentSentence = sentences[sIdx];
 
-  function listen() {
+  // Fetch the illustration for the current word.
+  useEffect(() => {
+    if (stage !== "words" || !current?.word) return;
+    const w = current.word.toLowerCase();
+    if (images[w]) return;
+    let cancelled = false;
+    setImageLoading(true);
+    fetchImage({ data: { word: w } })
+      .then((r) => {
+        if (!cancelled) setImages((prev) => ({ ...prev, [w]: r.dataUrl }));
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setImageLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [stage, current?.word, images, fetchImage]);
+
+  function listen(target: string) {
     const rec = getRecognition();
     if (!rec) {
       toast.error("Speech isn't supported in this browser. Try Chrome!");
@@ -81,7 +117,7 @@ function LearnPage() {
     setPhase("listening");
     rec.onresult = async (e: any) => {
       const heard = e.results[0]?.[0]?.transcript ?? "";
-      await check(heard);
+      await check(target, heard);
     };
     rec.onerror = () => {
       setPhase("ready");
@@ -93,15 +129,15 @@ function LearnPage() {
     rec.start();
   }
 
-  async function check(heard: string) {
+  async function check(target: string, heard: string) {
     setPhase("checking");
     try {
-      const r = await score({ data: { childId, targetWord: current.word, heard } });
+      const r = await score({ data: { childId, targetWord: target, heard } });
       setLastCorrect(r.correct);
       setFeedback(r.feedback);
       if (r.correct) {
         setCorrectCount((c) => c + 1);
-        setCoins((c) => c + 5);
+        setCoins((c) => c + (stage === "reading" ? 10 : 5));
       }
       speak(r.feedback);
       setPhase("result");
@@ -111,22 +147,55 @@ function LearnPage() {
     }
   }
 
+  async function finish() {
+    const xp = correctCount * 20 + words.length * 5 + sentences.length * 5;
+    try {
+      await award({
+        data: {
+          childId,
+          xp,
+          coins,
+          correct: correctCount,
+          total: words.length + sentences.length,
+        },
+      });
+    } catch {
+      /* non-blocking */
+    }
+    setPhase("done");
+    speak(`Amazing work ${childName}! You earned ${coins} coins!`);
+  }
+
   async function next() {
-    if (idx + 1 >= words.length) {
-      const xp = correctCount * 20 + words.length * 5;
-      try {
-        await award({
-          data: { childId, xp, coins, correct: correctCount, total: words.length },
-        });
-      } catch { /* non-blocking */ }
-      setPhase("done");
-      speak(`Amazing work ${childName}! You earned ${coins} coins!`);
+    setFeedback("");
+    if (stage === "words") {
+      if (idx + 1 >= words.length) {
+        if (sentences.length > 0) {
+          setStage("reading");
+          setSIdx(0);
+          setPhase("ready");
+          speak("Now let's read some sentences!");
+          return;
+        }
+        await finish();
+        return;
+      }
+      setIdx((i) => i + 1);
+      setPhase("ready");
       return;
     }
-    setIdx((i) => i + 1);
-    setFeedback("");
+    // reading stage
+    if (sIdx + 1 >= sentences.length) {
+      await finish();
+      return;
+    }
+    setSIdx((i) => i + 1);
     setPhase("ready");
   }
+
+  const totalItems = words.length + sentences.length;
+  const itemNumber = stage === "words" ? idx + 1 : words.length + sIdx + 1;
+  const wordImg = current ? images[current.word.toLowerCase()] : undefined;
 
   return (
     <div className="min-h-screen bg-gradient-hero">
@@ -144,14 +213,26 @@ function LearnPage() {
             </div>
           )}
 
-          {phase !== "loading" && phase !== "done" && current && (
+          {/* WORDS STAGE */}
+          {phase !== "loading" && phase !== "done" && stage === "words" && current && (
             <>
               <span className="inline-block rounded-full bg-secondary px-4 py-1 text-sm font-bold text-secondary-foreground">
                 Today's sound: {focusSound}
               </span>
               <p className="mt-4 text-sm text-muted-foreground">
-                Word {idx + 1} of {words.length}
+                {itemNumber} of {totalItems}
               </p>
+
+              <div className="mx-auto mt-4 flex h-44 w-44 items-center justify-center overflow-hidden rounded-3xl bg-muted">
+                {wordImg ? (
+                  <img src={wordImg} alt={current.word} className="h-full w-full object-cover animate-pop-in" />
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <span className="h-10 w-10 animate-spin rounded-full border-4 border-border border-t-primary" />
+                    <span className="text-xs font-bold">Drawing…</span>
+                  </div>
+                )}
+              </div>
 
               <button
                 onClick={() => speak(current.word, 0.7)}
@@ -181,12 +262,16 @@ function LearnPage() {
                       onClick={next}
                       className="mt-5 rounded-full bg-gradient-warm px-8 py-3 text-lg font-bold text-primary-foreground shadow-soft transition-transform hover:scale-105"
                     >
-                      {idx + 1 >= words.length ? "Finish 🎉" : "Next word →"}
+                      {idx + 1 >= words.length
+                        ? sentences.length > 0
+                          ? "Reading time →"
+                          : "Finish 🎉"
+                        : "Next word →"}
                     </button>
                   </div>
                 ) : (
                   <button
-                    onClick={listen}
+                    onClick={() => listen(current.word)}
                     disabled={phase === "listening" || phase === "checking"}
                     className="rounded-full bg-primary px-10 py-5 text-xl font-bold text-primary-foreground shadow-pop transition-transform hover:scale-105 disabled:opacity-70"
                   >
@@ -202,12 +287,65 @@ function LearnPage() {
             </>
           )}
 
+          {/* READING STAGE */}
+          {phase !== "loading" && phase !== "done" && stage === "reading" && currentSentence && (
+            <>
+              <span className="inline-block rounded-full bg-secondary px-4 py-1 text-sm font-bold text-secondary-foreground">
+                📖 Reading time
+              </span>
+              <p className="mt-4 text-sm text-muted-foreground">
+                {itemNumber} of {totalItems}
+              </p>
+
+              <p className="mx-auto mt-6 max-w-md text-3xl font-bold leading-snug text-primary md:text-4xl">
+                {currentSentence}
+              </p>
+
+              <button
+                onClick={() => speak(currentSentence, 0.7)}
+                className="mt-6 rounded-full border-2 border-border px-5 py-2 font-bold transition-transform hover:scale-105"
+              >
+                🔊 Buddy reads it
+              </button>
+
+              <div className="mt-8">
+                {phase === "result" ? (
+                  <div className="animate-pop-in">
+                    <div className={`text-5xl ${lastCorrect ? "" : "opacity-90"}`}>
+                      {lastCorrect ? "🌟" : "💪"}
+                    </div>
+                    <p className="mt-2 text-lg font-bold">{feedback}</p>
+                    <button
+                      onClick={next}
+                      className="mt-5 rounded-full bg-gradient-warm px-8 py-3 text-lg font-bold text-primary-foreground shadow-soft transition-transform hover:scale-105"
+                    >
+                      {sIdx + 1 >= sentences.length ? "Finish 🎉" : "Next sentence →"}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => listen(currentSentence)}
+                    disabled={phase === "listening" || phase === "checking"}
+                    className="rounded-full bg-primary px-10 py-5 text-xl font-bold text-primary-foreground shadow-pop transition-transform hover:scale-105 disabled:opacity-70"
+                  >
+                    {phase === "listening" ? "🎤 Listening…" : phase === "checking" ? "Thinking…" : "🎤 Read it aloud"}
+                  </button>
+                )}
+                {!speechSupported && (
+                  <p className="mt-4 text-sm text-destructive">
+                    Voice needs Chrome or Safari to work. You can still hear Buddy read!
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+
           {phase === "done" && (
             <div className="animate-pop-in py-10">
               <img src={buddyOwl} alt="Buddy" className="mx-auto h-28 w-28 animate-float" />
               <h2 className="mt-4 text-3xl font-bold">Great job, {childName}! 🎉</h2>
               <p className="mt-2 text-lg text-muted-foreground">
-                You got {correctCount} of {words.length} and earned 🪙 {coins} coins!
+                You got {correctCount} of {totalItems} and earned 🪙 {coins} coins!
               </p>
               <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
                 <button
