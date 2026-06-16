@@ -197,6 +197,27 @@ export type Database = {
         }
         Relationships: []
       }
+      word_images: {
+        Row: {
+          created_at: string
+          id: string
+          image_data: string
+          word: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_data: string
+          word: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_data?: string
+          word?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
