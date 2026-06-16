@@ -26,22 +26,42 @@ function AuthPage() {
   async function handleEmail(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error("That took too long. Check your connection and try again.")),
+        15000,
+      ),
+    );
+
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin + "/dashboard",
-            data: { full_name: name },
-          },
-        });
+        const { error } = await Promise.race([
+          supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: window.location.origin + "/dashboard",
+              data: { full_name: name },
+            },
+          }),
+          timeout,
+        ]);
         if (error) throw error;
         toast.success("Welcome to Buddy! 🦉");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await Promise.race([
+          supabase.auth.signInWithPassword({ email, password }),
+          timeout,
+        ]);
         if (error) throw error;
       }
+
+      // Make sure the session is actually stored before navigating,
+      // otherwise the dashboard guard can bounce us back to login.
+      const { data: sess } = await supabase.auth.getSession();
+      if (!sess.session) throw new Error("Couldn't start your session. Please try again.");
+
       navigate({ to: "/dashboard" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong");

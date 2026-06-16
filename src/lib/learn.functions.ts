@@ -38,9 +38,10 @@ export const getLesson = createServerFn({ method: "POST" })
       prompt: `You are a phonics tutor for ${child.name}, age ${child.age ?? 5}, reading level "${child.reading_level}".
 Create a short practice set of exactly 5 simple, age-appropriate words that all share one focus phoneme/sound.
 Pick a focusSound like "short a", "sh digraph", etc. Keep words decodable for this level.
+Also write exactly 3 very short, decodable sentences (3-6 words each) that a beginner can read aloud. Each sentence should use at least one of the practice words. End each sentence with proper punctuation.
 Respond with ONLY valid JSON in exactly this shape (no markdown, no extra text):
-{"focusSound":"short a","words":[{"word":"cat","phonemes":"c-a-t","hint":"a furry pet"}]}
-The "words" array must contain exactly 5 items. Each word lowercase, phonemes split with hyphens, hint one short kid-friendly line.`,
+{"focusSound":"short a","words":[{"word":"cat","phonemes":"c-a-t","hint":"a furry pet"}],"sentences":["The cat sat on a mat.","A fat cat ran fast."]}
+The "words" array must contain exactly 5 items. Each word lowercase, phonemes split with hyphens, hint one short kid-friendly line. The "sentences" array must contain exactly 3 items.`,
     });
     const out = parseJson(text);
     return {
@@ -50,6 +51,10 @@ The "words" array must contain exactly 5 items. Each word lowercase, phonemes sp
         phonemes: String(w.phonemes ?? ""),
         hint: String(w.hint ?? ""),
       })),
+      sentences: (out.sentences ?? [])
+        .slice(0, 3)
+        .map((s: any) => String(s ?? ""))
+        .filter((s: string) => s.length > 0),
       childName: child.name,
     };
   });
