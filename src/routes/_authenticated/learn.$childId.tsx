@@ -95,9 +95,7 @@ function LearnPage() {
       .then((r) => {
         if (!cancelled) setImages((prev) => ({ ...prev, [w]: r.dataUrl }));
       })
-      .catch(() => {})
-      .finally(() => {
-      });
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
