@@ -14,6 +14,63 @@ type Word = { word: string; phonemes: string; hint: string };
 type Stage = "words" | "reading";
 type Phase = "loading" | "ready" | "listening" | "checking" | "result" | "done";
 
+const quickPictures: Record<string, string> = {
+  ant: "🐜",
+  apple: "🍎",
+  ball: "⚽",
+  bat: "🦇",
+  bee: "🐝",
+  bird: "🐦",
+  boat: "⛵",
+  book: "📚",
+  bug: "🐞",
+  bus: "🚌",
+  cake: "🍰",
+  car: "🚗",
+  cat: "🐱",
+  cow: "🐮",
+  cup: "🥤",
+  dog: "🐶",
+  duck: "🦆",
+  egg: "🥚",
+  fish: "🐟",
+  fox: "🦊",
+  frog: "🐸",
+  goat: "🐐",
+  hat: "🎩",
+  hen: "🐔",
+  horse: "🐴",
+  jam: "🍓",
+  kite: "🪁",
+  leaf: "🍃",
+  lion: "🦁",
+  log: "🪵",
+  man: "🧍",
+  map: "🗺️",
+  moon: "🌙",
+  mouse: "🐭",
+  mug: "☕",
+  nest: "🪺",
+  pig: "🐷",
+  pot: "🫕",
+  rain: "🌧️",
+  rat: "🐭",
+  ring: "💍",
+  ship: "🚢",
+  shoe: "👟",
+  sock: "🧦",
+  star: "⭐",
+  sun: "☀️",
+  tree: "🌳",
+  van: "🚐",
+  web: "🕸️",
+};
+
+function quickPictureFor(word: string) {
+  const clean = word.toLowerCase().replace(/[^a-z]/g, "");
+  return quickPictures[clean] ?? "🌈";
+}
+
 function speak(text: string, rate = 0.85) {
   if (typeof window === "undefined" || !window.speechSynthesis) return;
   window.speechSynthesis.cancel();
@@ -197,6 +254,7 @@ function LearnPage() {
   const totalItems = words.length + sentences.length;
   const itemNumber = stage === "words" ? idx + 1 : words.length + sIdx + 1;
   const wordImg = current ? images[current.word.toLowerCase()] : undefined;
+  const quickPicture = current ? quickPictureFor(current.word) : "🌈";
 
   return (
     <div className="min-h-screen bg-gradient-hero">
@@ -228,9 +286,8 @@ function LearnPage() {
                 {wordImg ? (
                   <img src={wordImg} alt={current.word} className="h-full w-full object-cover animate-pop-in" />
                 ) : (
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <span className="h-10 w-10 animate-spin rounded-full border-4 border-border border-t-primary" />
-                    <span className="text-xs font-bold">Drawing…</span>
+                  <div className="flex h-full w-full items-center justify-center bg-secondary/60 text-7xl animate-pop-in" aria-label={current.word}>
+                    <span>{quickPicture}</span>
                   </div>
                 )}
               </div>
