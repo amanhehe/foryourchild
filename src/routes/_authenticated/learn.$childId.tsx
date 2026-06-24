@@ -2,7 +2,6 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getLesson, scorePronunciation, awardProgress } from "@/lib/learn.functions";
-import { getWordImage } from "@/lib/images.functions";
 import { toast } from "sonner";
 import buddyOwl from "@/assets/buddy-owl.png";
 
@@ -97,7 +96,6 @@ function LearnPage() {
   const fetchLesson = useServerFn(getLesson);
   const score = useServerFn(scorePronunciation);
   const award = useServerFn(awardProgress);
-  const fetchImage = useServerFn(getWordImage);
 
   const [phase, setPhase] = useState<Phase>("loading");
   const [stage, setStage] = useState<Stage>("words");
@@ -111,7 +109,6 @@ function LearnPage() {
   const [lastCorrect, setLastCorrect] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
   const [coins, setCoins] = useState(0);
-  const [images, setImages] = useState<Record<string, string>>({});
   const recRef = useRef<any>(null);
   const speechSupported = typeof window !== "undefined" && !!getRecognition();
 
@@ -141,28 +138,6 @@ function LearnPage() {
 
   const current = words[idx];
   const currentSentence = sentences[sIdx];
-
-  // Prefetch illustrations for every word as soon as the lesson loads,
-  // so pictures are ready ahead of time instead of one-at-a-time waits.
-  useEffect(() => {
-    if (words.length === 0) return;
-    let cancelled = false;
-    const pending = new Set<string>();
-    for (const wRaw of words) {
-      const w = wRaw.word.toLowerCase();
-      if (!w || images[w] || pending.has(w)) continue;
-      pending.add(w);
-      fetchImage({ data: { word: w } })
-        .then((r) => {
-          if (!cancelled) setImages((prev) => (prev[w] ? prev : { ...prev, [w]: r.dataUrl }));
-        })
-        .catch(() => {});
-    }
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [words]);
 
   function listen(target: string) {
     const rec = getRecognition();
@@ -253,7 +228,6 @@ function LearnPage() {
 
   const totalItems = words.length + sentences.length;
   const itemNumber = stage === "words" ? idx + 1 : words.length + sIdx + 1;
-  const wordImg = current ? images[current.word.toLowerCase()] : undefined;
   const quickPicture = current ? quickPictureFor(current.word) : "🌈";
 
   return (
@@ -282,14 +256,8 @@ function LearnPage() {
                 {itemNumber} of {totalItems}
               </p>
 
-              <div className="mx-auto mt-4 flex h-44 w-44 items-center justify-center overflow-hidden rounded-3xl bg-muted">
-                {wordImg ? (
-                  <img src={wordImg} alt={current.word} className="h-full w-full object-cover animate-pop-in" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-secondary/60 text-7xl animate-pop-in" aria-label={current.word}>
-                    <span>{quickPicture}</span>
-                  </div>
-                )}
+              <div className="mx-auto mt-4 flex h-44 w-44 items-center justify-center overflow-hidden rounded-3xl bg-secondary/60 text-7xl animate-pop-in" aria-label={current.word}>
+                <span>{quickPicture}</span>
               </div>
 
               <button
