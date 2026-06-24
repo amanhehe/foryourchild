@@ -147,7 +147,17 @@ function AuthPage() {
           </button>
         </form>
 
-        <p className="mt-5 text-center text-sm text-muted-foreground">
+        <button
+          onClick={() => {
+            window.localStorage.setItem("buddy_guest", "1");
+            navigate({ to: "/dashboard" });
+          }}
+          className="mt-4 w-full rounded-full py-3 text-sm font-bold text-muted-foreground transition-colors hover:text-foreground"
+        >
+          Skip for now → explore the prototype
+        </button>
+
+        <p className="mt-3 text-center text-sm text-muted-foreground">
           {mode === "login" ? "New to Buddy?" : "Already have an account?"}{" "}
           <button
             onClick={() => setMode(mode === "login" ? "signup" : "login")}
