@@ -85,21 +85,27 @@ function LearnPage() {
   const current = words[idx];
   const currentSentence = sentences[sIdx];
 
-  // Fetch the illustration for the current word.
+  // Prefetch illustrations for every word as soon as the lesson loads,
+  // so pictures are ready ahead of time instead of one-at-a-time waits.
   useEffect(() => {
-    if (stage !== "words" || !current?.word) return;
-    const w = current.word.toLowerCase();
-    if (images[w]) return;
+    if (words.length === 0) return;
     let cancelled = false;
-    fetchImage({ data: { word: w } })
-      .then((r) => {
-        if (!cancelled) setImages((prev) => ({ ...prev, [w]: r.dataUrl }));
-      })
-      .catch(() => {});
+    const pending = new Set<string>();
+    for (const wRaw of words) {
+      const w = wRaw.word.toLowerCase();
+      if (!w || images[w] || pending.has(w)) continue;
+      pending.add(w);
+      fetchImage({ data: { word: w } })
+        .then((r) => {
+          if (!cancelled) setImages((prev) => (prev[w] ? prev : { ...prev, [w]: r.dataUrl }));
+        })
+        .catch(() => {});
+    }
     return () => {
       cancelled = true;
     };
-  }, [stage, current?.word, images, fetchImage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [words]);
 
   function listen(target: string) {
     const rec = getRecognition();
