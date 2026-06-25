@@ -56,7 +56,16 @@ function Dashboard() {
 
   async function addChild(e: React.FormEvent) {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      toast.error("Please sign in to save a child profile.", {
+        description: "Guest mode can't save data. Tap Sign out to go to the login screen.",
+      });
+      return;
+    }
+    if (!name.trim()) {
+      toast.error("Please enter a name.");
+      return;
+    }
     setBusy(true);
     const { error } = await supabase.from("children").insert({
       parent_id: user.id,
@@ -80,6 +89,7 @@ function Dashboard() {
 
   async function signOut() {
     await supabase.auth.signOut();
+    if (typeof window !== "undefined") window.localStorage.removeItem("buddy_guest");
     navigate({ to: "/" });
   }
 
