@@ -22,12 +22,48 @@ function speak(text: string) {
   window.speechSynthesis.speak(u);
 }
 
+function guestChildName(childId: string): string {
+  try {
+    const raw = localStorage.getItem("guestChildren");
+    if (!raw) return "Buddy";
+    const list = JSON.parse(raw) as Array<{ id: string; name: string }>;
+    return list.find((c) => c.id === childId)?.name || "Buddy";
+  } catch {
+    return "Buddy";
+  }
+}
+
+function guestStory(theme: string, childId: string): Story {
+  const name = guestChildName(childId);
+  const t = theme || "Animals";
+  const themeMap: Record<string, { emoji: string; setting: string; friend: string; thing: string }> = {
+    Space: { emoji: "🚀", setting: "in a big red ship", friend: "a small green alien", thing: "a shiny star" },
+    Dinosaurs: { emoji: "🦖", setting: "in a green land", friend: "a tiny dino", thing: "a big egg" },
+    Pirates: { emoji: "🏴‍☠️", setting: "on a fast ship", friend: "a wise parrot", thing: "a gold map" },
+    Magic: { emoji: "✨", setting: "in a tall tower", friend: "a kind cat", thing: "a magic hat" },
+    Animals: { emoji: "🐶", setting: "in the park", friend: "a big dog", thing: "a red ball" },
+    "Under the sea": { emoji: "🐠", setting: "deep in the sea", friend: "a pink fish", thing: "a pearl" },
+  };
+  const m = themeMap[t] || themeMap.Animals;
+  return {
+    title: `${name} and the ${t}`,
+    emoji: m.emoji,
+    paragraphs: [
+      `${name} ran fast. ${name} got ${m.setting}. The sun was hot and the sky was blue.`,
+      `${name} met ${m.friend}. They sat and had a chat. "Can you help me?" said the friend. "Yes!" said ${name}.`,
+      `They went to find ${m.thing}. It was a long trip. But ${name} did not stop.`,
+      `At last ${name} got ${m.thing}. The friend gave ${name} a big hug. ${name} went home with a smile. The end.`,
+    ],
+  };
+}
+
 function StoryPage() {
   const { childId } = Route.useParams();
   const make = useServerFn(generateStory);
   const [theme, setTheme] = useState<string>("");
   const [story, setStory] = useState<Story | null>(null);
   const [loading, setLoading] = useState(false);
+  const isGuest = childId.startsWith("guest-");
 
   const create = useCallback(
     async (t: string) => {
@@ -35,16 +71,23 @@ function StoryPage() {
       setLoading(true);
       setStory(null);
       try {
-        const res = await make({ data: { childId, theme: t || undefined } });
-        setStory(res);
+        if (isGuest) {
+          await new Promise((r) => setTimeout(r, 400));
+          setStory(guestStory(t, childId));
+        } else {
+          const res = await make({ data: { childId, theme: t || undefined } });
+          setStory(res);
+        }
       } catch {
-        toast.error("Buddy couldn't write a story. Try again!");
+        toast.error("Buddy couldn't write a story. Using a backup story!");
+        setStory(guestStory(t, childId));
       } finally {
         setLoading(false);
       }
     },
-    [childId, make],
+    [childId, make, isGuest],
   );
+
 
   useEffect(() => {
     return () => window.speechSynthesis?.cancel();
