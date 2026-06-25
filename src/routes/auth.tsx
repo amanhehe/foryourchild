@@ -99,6 +99,7 @@ function AuthPage() {
         </div>
 
         <button
+          type="button"
           onClick={handleGoogle}
           disabled={busy}
           className="mt-6 flex w-full items-center justify-center gap-2 rounded-full border-2 border-border bg-card py-3 font-bold transition-transform hover:scale-[1.02] disabled:opacity-60"
@@ -149,6 +150,7 @@ function AuthPage() {
         </form>
 
         <button
+          type="button"
           onClick={() => {
             window.localStorage.setItem("buddy_guest", "1");
             navigate({ to: "/dashboard" });
@@ -161,6 +163,7 @@ function AuthPage() {
         <p className="mt-3 text-center text-sm text-muted-foreground">
           {mode === "login" ? "New to Buddy?" : "Already have an account?"}{" "}
           <button
+            type="button"
             onClick={() => setMode(mode === "login" ? "signup" : "login")}
             className="font-bold text-primary"
           >

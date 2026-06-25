@@ -187,6 +187,7 @@ function Dashboard() {
         <div className="mt-8 flex items-center justify-between">
           <h2 className="text-xl font-bold">Your children</h2>
           <button
+            type="button"
             onClick={() => setShowForm((s) => !s)}
             className="rounded-full bg-primary px-5 py-2 font-bold text-primary-foreground shadow-soft transition-transform hover:scale-105"
           >
