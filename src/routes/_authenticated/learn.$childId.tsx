@@ -111,6 +111,32 @@ function LearnPage() {
   const [coins, setCoins] = useState(0);
   const recRef = useRef<any>(null);
   const speechSupported = typeof window !== "undefined" && !!getRecognition();
+  const isGuest = childId.startsWith("guest-");
+
+  const guestLesson = useCallback(() => {
+    let name = "Friend";
+    try {
+      const stored = JSON.parse(localStorage.getItem("guest_children") || "[]");
+      const found = stored.find((c: any) => c.id === childId);
+      if (found?.name) name = found.name;
+    } catch { /* ignore */ }
+    return {
+      focusSound: "short a",
+      childName: name,
+      words: [
+        { word: "cat", phonemes: "c-a-t", hint: "a furry pet" },
+        { word: "hat", phonemes: "h-a-t", hint: "you wear it on your head" },
+        { word: "bat", phonemes: "b-a-t", hint: "it flies at night" },
+        { word: "map", phonemes: "m-a-p", hint: "shows where to go" },
+        { word: "sun", phonemes: "s-u-n", hint: "shines in the sky" },
+      ],
+      sentences: [
+        "The cat sat on a mat.",
+        "A fat bat ran fast.",
+        "The sun is up high.",
+      ],
+    };
+  }, [childId]);
 
   const load = useCallback(async () => {
     setPhase("loading");
@@ -121,7 +147,7 @@ function LearnPage() {
     setCoins(0);
     setFeedback("");
     try {
-      const res = await fetchLesson({ data: { childId } });
+      const res = isGuest ? guestLesson() : await fetchLesson({ data: { childId } });
       setFocusSound(res.focusSound);
       setChildName(res.childName);
       setWords(res.words);
@@ -130,7 +156,7 @@ function LearnPage() {
     } catch {
       toast.error("Couldn't start the lesson. Try again!");
     }
-  }, [childId, fetchLesson]);
+  }, [childId, fetchLesson, isGuest, guestLesson]);
 
   useEffect(() => {
     load();
