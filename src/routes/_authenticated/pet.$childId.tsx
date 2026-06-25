@@ -35,6 +35,26 @@ function PetPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (childId.startsWith("guest-")) {
+      try {
+        const raw = localStorage.getItem("guestChildren");
+        const list = raw ? (JSON.parse(raw) as any[]) : [];
+        const g = list.find((c) => c.id === childId);
+        setChild({
+          name: g?.name || "Buddy",
+          pet_type: g?.pet_type || "dragon",
+          xp: g?.xp ?? 0,
+          level: g?.level ?? 1,
+          streak: g?.streak ?? 0,
+          coins: g?.coins ?? 0,
+          literacy_score: g?.literacy_score ?? 0,
+        });
+      } catch {
+        setChild({ name: "Buddy", pet_type: "dragon", xp: 0, level: 1, streak: 0, coins: 0, literacy_score: 0 });
+      }
+      setLoading(false);
+      return;
+    }
     supabase
       .from("children")
       .select("name, pet_type, xp, level, streak, coins, literacy_score")
