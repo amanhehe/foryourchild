@@ -191,7 +191,19 @@ function LearnPage() {
   async function check(target: string, heard: string) {
     setPhase("checking");
     try {
-      const r = await score({ data: { childId, targetWord: target, heard } });
+      let r: { correct: boolean; score: number; feedback: string };
+      if (isGuest) {
+        const t = target.toLowerCase().replace(/[^a-z ]/g, "").trim();
+        const h = heard.toLowerCase().replace(/[^a-z ]/g, "").trim();
+        const correct = !!h && (h === t || h.includes(t) || t.includes(h));
+        r = {
+          correct,
+          score: correct ? 95 : 40,
+          feedback: correct ? "Awesome — you said it perfectly!" : `Nice try! Listen: ${target}.`,
+        };
+      } else {
+        r = await score({ data: { childId, targetWord: target, heard } });
+      }
       setLastCorrect(r.correct);
       setFeedback(r.feedback);
       if (r.correct) {
@@ -208,18 +220,20 @@ function LearnPage() {
 
   async function finish() {
     const xp = correctCount * 20 + words.length * 5 + sentences.length * 5;
-    try {
-      await award({
-        data: {
-          childId,
-          xp,
-          coins,
-          correct: correctCount,
-          total: words.length + sentences.length,
-        },
-      });
-    } catch {
-      /* non-blocking */
+    if (!isGuest) {
+      try {
+        await award({
+          data: {
+            childId,
+            xp,
+            coins,
+            correct: correctCount,
+            total: words.length + sentences.length,
+          },
+        });
+      } catch {
+        /* non-blocking */
+      }
     }
     setPhase("done");
     speak(`Amazing work ${childName}! You earned ${coins} coins!`);
