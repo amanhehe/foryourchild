@@ -89,6 +89,7 @@ function Dashboard() {
 
   async function signOut() {
     await supabase.auth.signOut();
+    if (typeof window !== "undefined") window.localStorage.removeItem("buddy_guest");
     navigate({ to: "/" });
   }
 
