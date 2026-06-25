@@ -324,16 +324,33 @@ function LearnPage() {
                       {lastCorrect ? "🌟" : "💪"}
                     </div>
                     <p className="mt-2 text-lg font-bold">{feedback}</p>
-                    <button
-                      onClick={next}
-                      className="mt-5 rounded-full bg-gradient-warm px-8 py-3 text-lg font-bold text-primary-foreground shadow-soft transition-transform hover:scale-105"
-                    >
-                      {idx + 1 >= words.length
-                        ? sentences.length > 0
-                          ? "Reading time →"
-                          : "Finish 🎉"
-                        : "Next word →"}
-                    </button>
+                    {lastCorrect ? (
+                      <button
+                        onClick={next}
+                        className="mt-5 rounded-full bg-gradient-warm px-8 py-3 text-lg font-bold text-primary-foreground shadow-soft transition-transform hover:scale-105"
+                      >
+                        {idx + 1 >= words.length
+                          ? sentences.length > 0
+                            ? "Reading time →"
+                            : "Finish 🎉"
+                          : "Next word →"}
+                      </button>
+                    ) : (
+                      <div className="mt-5 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+                        <button
+                          onClick={() => listen(current.word)}
+                          className="rounded-full bg-primary px-8 py-3 text-lg font-bold text-primary-foreground shadow-pop transition-transform hover:scale-105"
+                        >
+                          🔁 Try again
+                        </button>
+                        <button
+                          onClick={next}
+                          className="rounded-full border-2 border-border px-8 py-3 text-lg font-bold transition-transform hover:scale-105"
+                        >
+                          Skip →
+                        </button>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <button
