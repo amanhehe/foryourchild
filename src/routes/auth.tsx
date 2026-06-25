@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import buddyOwl from "@/assets/buddy-owl.png";
 
 export const Route = createFileRoute("/auth")({
+  ssr: false,
   component: AuthPage,
 });
 
