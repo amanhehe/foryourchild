@@ -30,7 +30,7 @@ const LEVELS = [
 ];
 
 function Dashboard() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [children, setChildren] = useState<Child[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,14 +41,47 @@ function Dashboard() {
   const [level, setLevel] = useState("foundation");
   const [busy, setBusy] = useState(false);
 
+  const isGuestMode = useCallback(() => {
+    return typeof window !== "undefined" && window.localStorage.getItem("buddy_guest") === "1";
+  }, []);
+
+  const getGuestChildren = useCallback((): Child[] => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(window.localStorage.getItem("buddy_guest_children") ?? "[]") as Child[];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const saveGuestChildren = useCallback((nextChildren: Child[]) => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem("buddy_guest_children", JSON.stringify(nextChildren));
+  }, []);
+
   const load = useCallback(async () => {
+    if (authLoading) return;
+
+    if (!user && isGuestMode()) {
+      setChildren(getGuestChildren());
+      setLoading(false);
+      return;
+    }
+
+    if (!user) {
+      setChildren([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
     const { data } = await supabase
       .from("children")
       .select("*")
       .order("created_at", { ascending: true });
     setChildren((data ?? []) as Child[]);
     setLoading(false);
-  }, []);
+  }, [authLoading, getGuestChildren, isGuestMode, user]);
 
   useEffect(() => {
     load();
@@ -56,20 +89,46 @@ function Dashboard() {
 
   async function addChild(e: React.FormEvent) {
     e.preventDefault();
+    const childName = name.trim();
+    if (!childName) {
+      toast.error("Please enter a name.");
+      return;
+    }
+
     if (!user) {
+      if (isGuestMode()) {
+        const guestChild: Child = {
+          id: `guest-${Date.now()}`,
+          name: childName,
+          age: age ? Number(age) : null,
+          avatar,
+          reading_level: level,
+          xp: 0,
+          coins: 0,
+          level: 1,
+          streak: 0,
+          literacy_score: 0,
+        };
+        const nextChildren = [...getGuestChildren(), guestChild];
+        saveGuestChildren(nextChildren);
+        setChildren(nextChildren);
+        toast.success(`${childName} added for this prototype! 🎉`);
+        setName("");
+        setAge("");
+        setAvatar("🦊");
+        setShowForm(false);
+        return;
+      }
       toast.error("Please sign in to save a child profile.", {
         description: "Guest mode can't save data. Tap Sign out to go to the login screen.",
       });
       return;
     }
-    if (!name.trim()) {
-      toast.error("Please enter a name.");
-      return;
-    }
+
     setBusy(true);
     const { error } = await supabase.from("children").insert({
       parent_id: user.id,
-      name,
+      name: childName,
       age: age ? Number(age) : null,
       avatar,
       reading_level: level,
@@ -79,7 +138,7 @@ function Dashboard() {
       toast.error(error.message);
       return;
     }
-    toast.success(`${name} added! 🎉`);
+    toast.success(`${childName} added! 🎉`);
     setName("");
     setAge("");
     setAvatar("🦊");
@@ -89,7 +148,10 @@ function Dashboard() {
 
   async function signOut() {
     await supabase.auth.signOut();
-    if (typeof window !== "undefined") window.localStorage.removeItem("buddy_guest");
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("buddy_guest");
+      window.localStorage.removeItem("buddy_guest_children");
+    }
     navigate({ to: "/" });
   }
 
@@ -125,6 +187,7 @@ function Dashboard() {
         <div className="mt-8 flex items-center justify-between">
           <h2 className="text-xl font-bold">Your children</h2>
           <button
+            type="button"
             onClick={() => setShowForm((s) => !s)}
             className="rounded-full bg-primary px-5 py-2 font-bold text-primary-foreground shadow-soft transition-transform hover:scale-105"
           >
