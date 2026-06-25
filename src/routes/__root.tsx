@@ -11,7 +11,6 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { Toaster } from "@/components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -97,8 +96,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "description", content: "AI Phonics Buddy is an AI-powered literacy coach for young learners." },
       { property: "og:description", content: "AI Phonics Buddy is an AI-powered literacy coach for young learners." },
       { name: "twitter:description", content: "AI Phonics Buddy is an AI-powered literacy coach for young learners." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2174cc44-3311-4df9-9f29-3aaf9c7d7542/id-preview-b113fccc--fc4903de-d761-48fb-879b-5ccdfc4e6f15.lovable.app-1781525709604.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/2174cc44-3311-4df9-9f29-3aaf9c7d7542/id-preview-b113fccc--fc4903de-d761-48fb-879b-5ccdfc4e6f15.lovable.app-1781525709604.png" },
+      { property: "og:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/76b7e6ae-343c-4d7a-9b17-3988a9faec87" },
+      { name: "twitter:image", content: "https://storage.googleapis.com/gpt-engineer-file-uploads/attachments/og-images/76b7e6ae-343c-4d7a-9b17-3988a9faec87" },
     ],
     links: [
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -140,7 +139,6 @@ function RootComponent() {
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
-      <Toaster richColors position="top-center" />
     </QueryClientProvider>
   );
 }
