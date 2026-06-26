@@ -1,7 +1,14 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState, useCallback } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/use-auth";
+import {
+  joinClassroom,
+  listChildClassrooms,
+  type ChildClassroomRow,
+  type ClassroomRow,
+} from "@/lib/teacher.functions";
 import { toast } from "sonner";
 import buddyOwl from "@/assets/buddy-owl.png";
 
@@ -29,17 +36,32 @@ const LEVELS = [
   { value: "year2", label: "Year 2 (age 7–8)" },
 ];
 
+const GUEST_CHILDREN_KEY = "buddy_guest_children";
+const GUEST_CLASSROOMS_KEY = "guestClassrooms";
+const GUEST_CLASS_MEMBERS_KEY = "buddy_guest_class_members";
+
+type GuestClassMembership = {
+  child_id: string;
+  classroom_id: string;
+};
+
 function Dashboard() {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+  const joinRoom = useServerFn(joinClassroom);
+  const listJoinedRooms = useServerFn(listChildClassrooms);
   const [children, setChildren] = useState<Child[]>([]);
+  const [joinedClasses, setJoinedClasses] = useState<ChildClassroomRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [joinChildId, setJoinChildId] = useState("");
+  const [joinCode, setJoinCode] = useState("");
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
   const [avatar, setAvatar] = useState("🦊");
   const [level, setLevel] = useState("foundation");
   const [busy, setBusy] = useState(false);
+  const [joining, setJoining] = useState(false);
 
   const isGuestMode = useCallback(() => {
     return typeof window !== "undefined" && window.localStorage.getItem("buddy_guest") === "1";
@@ -48,7 +70,7 @@ function Dashboard() {
   const getGuestChildren = useCallback((): Child[] => {
     if (typeof window === "undefined") return [];
     try {
-      return JSON.parse(window.localStorage.getItem("buddy_guest_children") ?? "[]") as Child[];
+      return JSON.parse(window.localStorage.getItem(GUEST_CHILDREN_KEY) ?? "[]") as Child[];
     } catch {
       return [];
     }
@@ -56,32 +78,85 @@ function Dashboard() {
 
   const saveGuestChildren = useCallback((nextChildren: Child[]) => {
     if (typeof window === "undefined") return;
-    window.localStorage.setItem("buddy_guest_children", JSON.stringify(nextChildren));
+    window.localStorage.setItem(GUEST_CHILDREN_KEY, JSON.stringify(nextChildren));
   }, []);
+
+  const getGuestClassrooms = useCallback((): ClassroomRow[] => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(window.localStorage.getItem(GUEST_CLASSROOMS_KEY) ?? "[]") as ClassroomRow[];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const getGuestMemberships = useCallback((): GuestClassMembership[] => {
+    if (typeof window === "undefined") return [];
+    try {
+      return JSON.parse(
+        window.localStorage.getItem(GUEST_CLASS_MEMBERS_KEY) ?? "[]",
+      ) as GuestClassMembership[];
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const saveGuestMemberships = useCallback((memberships: GuestClassMembership[]) => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(GUEST_CLASS_MEMBERS_KEY, JSON.stringify(memberships));
+  }, []);
+
+  const getGuestJoinedClasses = useCallback((): ChildClassroomRow[] => {
+    const rooms = getGuestClassrooms();
+    const memberships = getGuestMemberships();
+    return memberships.flatMap((membership) => {
+      const room = rooms.find((r) => r.id === membership.classroom_id);
+      if (!room) return [];
+      return [
+        {
+          child_id: membership.child_id,
+          classroom_id: room.id,
+          name: room.name,
+          year_level: room.year_level,
+          join_code: room.join_code,
+        },
+      ];
+    });
+  }, [getGuestClassrooms, getGuestMemberships]);
 
   const load = useCallback(async () => {
     if (authLoading) return;
 
     if (!user && isGuestMode()) {
-      setChildren(getGuestChildren());
+      const guestChildren = getGuestChildren();
+      setChildren(guestChildren);
+      setJoinedClasses(getGuestJoinedClasses());
+      setJoinChildId((current) => current || guestChildren[0]?.id || "");
       setLoading(false);
       return;
     }
 
     if (!user) {
       setChildren([]);
+      setJoinedClasses([]);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    const { data } = await supabase
+    const [{ data }, classData] = await Promise.all([
+      supabase
       .from("children")
       .select("*")
-      .order("created_at", { ascending: true });
-    setChildren((data ?? []) as Child[]);
+        .order("created_at", { ascending: true }),
+      listJoinedRooms({}),
+    ]);
+    const nextChildren = (data ?? []) as Child[];
+    setChildren(nextChildren);
+    setJoinedClasses(classData);
+    setJoinChildId((current) => current || nextChildren[0]?.id || "");
     setLoading(false);
-  }, [authLoading, getGuestChildren, isGuestMode, user]);
+  }, [authLoading, getGuestChildren, getGuestJoinedClasses, isGuestMode, listJoinedRooms, user]);
 
   useEffect(() => {
     load();
@@ -112,6 +187,7 @@ function Dashboard() {
         const nextChildren = [...getGuestChildren(), guestChild];
         saveGuestChildren(nextChildren);
         setChildren(nextChildren);
+        setJoinChildId((current) => current || guestChild.id);
         toast.success(`${childName} added for this prototype! 🎉`);
         setName("");
         setAge("");
@@ -146,14 +222,72 @@ function Dashboard() {
     load();
   }
 
+  async function joinClass(e: React.FormEvent) {
+    e.preventDefault();
+    const code = joinCode.trim().toUpperCase();
+    if (!joinChildId) {
+      toast.error("Add a child first, then join a class.");
+      return;
+    }
+    if (!code) {
+      toast.error("Enter the class code from the teacher.");
+      return;
+    }
+
+    setJoining(true);
+    try {
+      if (isGuestMode()) {
+        const room = getGuestClassrooms().find((r) => r.join_code.toUpperCase() === code);
+        if (!room) {
+          toast.error("No prototype class found with that code.");
+          return;
+        }
+        const memberships = getGuestMemberships();
+        const exists = memberships.some(
+          (membership) =>
+            membership.child_id === joinChildId && membership.classroom_id === room.id,
+        );
+        if (!exists) {
+          saveGuestMemberships([...memberships, { child_id: joinChildId, classroom_id: room.id }]);
+          const rooms = getGuestClassrooms().map((r) =>
+            r.id === room.id ? { ...r, member_count: r.member_count + 1 } : r,
+          );
+          window.localStorage.setItem(GUEST_CLASSROOMS_KEY, JSON.stringify(rooms));
+        }
+        setJoinedClasses(getGuestJoinedClasses());
+      } else {
+        const joined = await joinRoom({ data: { childId: joinChildId, code } });
+        setJoinedClasses((current) => {
+          const withoutDuplicate = current.filter(
+            (room) =>
+              !(room.child_id === joined.child_id && room.classroom_id === joined.classroom_id),
+          );
+          return [...withoutDuplicate, joined];
+        });
+      }
+      setJoinCode("");
+      toast.success("Class joined! 🎉");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Couldn't join that class.");
+    } finally {
+      setJoining(false);
+    }
+  }
+
   async function signOut() {
     await supabase.auth.signOut();
     if (typeof window !== "undefined") {
       window.localStorage.removeItem("buddy_guest");
-      window.localStorage.removeItem("buddy_guest_children");
+      window.localStorage.removeItem(GUEST_CHILDREN_KEY);
+      window.localStorage.removeItem(GUEST_CLASS_MEMBERS_KEY);
     }
     navigate({ to: "/" });
   }
+
+  const classesByChild = joinedClasses.reduce<Record<string, ChildClassroomRow[]>>((acc, room) => {
+    acc[room.child_id] = [...(acc[room.child_id] ?? []), room];
+    return acc;
+  }, {});
 
   return (
     <div className="min-h-screen">
@@ -264,6 +398,54 @@ function Dashboard() {
           </form>
         )}
 
+        <section className="mt-6 rounded-3xl border-2 border-border bg-card p-6 shadow-soft">
+          <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold">Join a teacher's class</h2>
+              <p className="text-sm text-muted-foreground">Enter the code your teacher shared.</p>
+            </div>
+            <Link
+              to="/teacher"
+              className="text-sm font-bold text-primary underline-offset-4 hover:underline"
+            >
+              Make a teacher class
+            </Link>
+          </div>
+          <form onSubmit={joinClass} className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+            <select
+              value={joinChildId}
+              onChange={(e) => setJoinChildId(e.target.value)}
+              disabled={children.length === 0}
+              className="w-full rounded-xl border-2 border-input bg-background px-4 py-2.5 outline-none focus:border-primary disabled:opacity-60"
+              aria-label="Choose child"
+            >
+              {children.length === 0 ? (
+                <option value="">Add a child first</option>
+              ) : (
+                children.map((child) => (
+                  <option key={child.id} value={child.id}>
+                    {child.name}
+                  </option>
+                ))
+              )}
+            </select>
+            <input
+              value={joinCode}
+              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+              placeholder="Class code"
+              maxLength={12}
+              className="w-full rounded-xl border-2 border-input bg-background px-4 py-2.5 font-bold uppercase tracking-widest outline-none focus:border-primary"
+            />
+            <button
+              type="submit"
+              disabled={joining || children.length === 0}
+              className="rounded-full bg-primary px-6 py-2.5 font-bold text-primary-foreground shadow-soft transition-transform hover:scale-105 disabled:opacity-60"
+            >
+              {joining ? "Joining…" : "Join class"}
+            </button>
+          </form>
+        </section>
+
         {loading ? (
           <p className="mt-8 text-center text-muted-foreground">Loading…</p>
         ) : children.length === 0 && !showForm ? (
@@ -295,6 +477,11 @@ function Dashboard() {
                   <Stat label="Coins" value={c.coins} />
                   <Stat label="Streak" value={`${c.streak}🔥`} />
                 </div>
+                {(classesByChild[c.id] ?? []).length > 0 && (
+                  <div className="mt-4 rounded-2xl bg-secondary px-4 py-3 text-sm font-bold text-secondary-foreground">
+                    🍎 Joined {classesByChild[c.id].map((room) => room.name).join(", ")}
+                  </div>
+                )}
                 <Link
                   to="/learn/$childId"
                   params={{ childId: c.id }}
