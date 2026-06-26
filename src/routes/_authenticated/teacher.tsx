@@ -5,7 +5,9 @@ import {
   listClassrooms,
   createClassroom,
   ensureTeacherRole,
+  listClassroomPupils,
   type ClassroomRow,
+  type PupilRow,
 } from "@/lib/teacher.functions";
 import { toast } from "sonner";
 import buddyOwl from "@/assets/buddy-owl.png";
@@ -33,6 +35,35 @@ function saveGuestRooms(rooms: ClassroomRow[]) {
   window.localStorage.setItem("guestClassrooms", JSON.stringify(rooms));
 }
 
+function getGuestPupils(classroomId: string): PupilRow[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const members = JSON.parse(
+      window.localStorage.getItem("buddy_guest_class_members") || "[]",
+    ) as { child_id: string; classroom_id: string }[];
+    const children = JSON.parse(
+      window.localStorage.getItem("buddy_guest_children") || "[]",
+    ) as any[];
+    const ids = members.filter((m) => m.classroom_id === classroomId).map((m) => m.child_id);
+    return children
+      .filter((c) => ids.includes(c.id))
+      .map((c) => ({
+        id: c.id,
+        name: c.name ?? "Pupil",
+        avatar: c.avatar ?? "🦊",
+        level: c.level ?? 1,
+        xp: c.xp ?? 0,
+        coins: c.coins ?? 0,
+        streak: c.streak ?? 0,
+        literacy_score: c.literacy_score ?? 0,
+        reading_level: c.reading_level ?? "foundation",
+        updated_at: c.updated_at ?? new Date().toISOString(),
+      }));
+  } catch {
+    return [];
+  }
+}
+
 function randomCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
@@ -41,12 +72,16 @@ function TeacherPage() {
   const list = useServerFn(listClassrooms);
   const create = useServerFn(createClassroom);
   const ensureRole = useServerFn(ensureTeacherRole);
+  const fetchPupils = useServerFn(listClassroomPupils);
   const [rooms, setRooms] = useState<ClassroomRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [name, setName] = useState("");
   const [year, setYear] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [openRoom, setOpenRoom] = useState<string | null>(null);
+  const [pupilsByRoom, setPupilsByRoom] = useState<Record<string, PupilRow[]>>({});
+  const [pupilsLoading, setPupilsLoading] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (isGuestMode()) {
@@ -101,6 +136,28 @@ function TeacherPage() {
     }
   }
 
+  async function togglePupils(roomId: string) {
+    if (openRoom === roomId) {
+      setOpenRoom(null);
+      return;
+    }
+    setOpenRoom(roomId);
+    if (pupilsByRoom[roomId]) return;
+    setPupilsLoading(roomId);
+    try {
+      if (isGuestMode()) {
+        setPupilsByRoom((p) => ({ ...p, [roomId]: getGuestPupils(roomId) }));
+      } else {
+        const data = await fetchPupils({ data: { classroomId: roomId } });
+        setPupilsByRoom((p) => ({ ...p, [roomId]: data }));
+      }
+    } catch {
+      toast.error("Couldn't load pupils.");
+    } finally {
+      setPupilsLoading(null);
+    }
+  }
+
   return (
     <div className="min-h-screen">
       <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-5">
@@ -119,7 +176,7 @@ function TeacherPage() {
       <main className="mx-auto max-w-5xl px-5 pb-16">
         <div className="rounded-3xl bg-gradient-hero p-6 text-primary-foreground shadow-soft">
           <h1 className="text-2xl font-bold">Your classrooms 🍎</h1>
-          <p className="mt-1 opacity-90">Create a class and share the join code with families.</p>
+          <p className="mt-1 opacity-90">Create a class, share the join code, then tap a class to see pupil progress.</p>
         </div>
 
         <div className="mt-8 flex items-center justify-between">
@@ -177,25 +234,93 @@ function TeacherPage() {
             <p className="text-sm text-muted-foreground">Create your first class to get started.</p>
           </div>
         ) : (
-          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {rooms.map((r) => (
-              <div
-                key={r.id}
-                className="animate-pop-in rounded-3xl border-2 border-border bg-card p-6 shadow-soft"
-              >
-                <p className="text-lg font-bold">{r.name}</p>
-                <p className="text-sm text-muted-foreground">{r.year_level || "All levels"}</p>
-                <div className="mt-4 flex items-center justify-between">
-                  <span className="text-sm font-bold">👧 {r.member_count} pupils</span>
-                  <span className="rounded-full bg-secondary px-3 py-1 text-sm font-bold text-secondary-foreground">
-                    Code: {r.join_code}
-                  </span>
+          <div className="mt-6 grid gap-4">
+            {rooms.map((r) => {
+              const isOpen = openRoom === r.id;
+              const pupils = pupilsByRoom[r.id];
+              return (
+                <div
+                  key={r.id}
+                  className="animate-pop-in rounded-3xl border-2 border-border bg-card p-6 shadow-soft"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-lg font-bold">{r.name}</p>
+                      <p className="text-sm text-muted-foreground">{r.year_level || "All levels"}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="rounded-full bg-secondary px-3 py-1 text-sm font-bold text-secondary-foreground">
+                        Code: {r.join_code}
+                      </span>
+                      <button
+                        onClick={() => togglePupils(r.id)}
+                        className="rounded-full bg-primary px-4 py-1.5 text-sm font-bold text-primary-foreground shadow-soft transition-transform hover:scale-105"
+                      >
+                        {isOpen ? "Hide pupils" : `👧 ${r.member_count} pupils`}
+                      </button>
+                    </div>
+                  </div>
+
+                  {isOpen && (
+                    <div className="mt-5 border-t-2 border-dashed border-border pt-5">
+                      {pupilsLoading === r.id ? (
+                        <p className="text-center text-muted-foreground">Loading pupils…</p>
+                      ) : !pupils || pupils.length === 0 ? (
+                        <p className="text-center text-muted-foreground">
+                          No pupils yet. Share the code <b>{r.join_code}</b> with families.
+                        </p>
+                      ) : (
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {pupils.map((p) => (
+                            <div
+                              key={p.id}
+                              className="rounded-2xl border-2 border-border bg-background p-4"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-3xl">{p.avatar || "🦊"}</span>
+                                <div className="flex-1">
+                                  <p className="font-bold">{p.name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {p.reading_level || "foundation"} reader
+                                  </p>
+                                </div>
+                                <span className="rounded-full bg-secondary px-2 py-0.5 text-xs font-bold text-secondary-foreground">
+                                  Lvl {p.level}
+                                </span>
+                              </div>
+                              <div className="mt-3 grid grid-cols-4 gap-2 text-center text-xs">
+                                <Stat label="XP" value={p.xp} />
+                                <Stat label="Coins" value={p.coins} />
+                                <Stat label="Streak" value={`${p.streak}🔥`} />
+                                <Stat label="Score" value={p.literacy_score} />
+                              </div>
+                              <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-muted">
+                                <div
+                                  className="h-full bg-gradient-warm"
+                                  style={{ width: `${Math.min(100, p.literacy_score)}%` }}
+                                />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </main>
+    </div>
+  );
+}
+
+function Stat({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="rounded-lg bg-muted px-2 py-1.5">
+      <p className="font-bold">{value}</p>
+      <p className="text-[10px] uppercase tracking-wide text-muted-foreground">{label}</p>
     </div>
   );
 }
