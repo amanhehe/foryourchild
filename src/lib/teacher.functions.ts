@@ -73,6 +73,9 @@ export const createClassroom = createServerFn({ method: "POST" })
     });
     if (error) throw error;
     return { ok: true };
+  });
+
+
 
 // List pupils in a classroom owned by the signed-in teacher with their progress.
 export const listClassroomPupils = createServerFn({ method: "POST" })
