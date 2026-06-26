@@ -434,7 +434,7 @@ function Dashboard() {
               onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
               placeholder="Class code"
               maxLength={12}
-              className="w-full rounded-xl border-2 border-input bg-background px-4 py-2.5 font-bold uppercase tracking-widest outline-none focus:border-primary"
+              className="w-full rounded-xl border-2 border-input bg-background px-4 py-2.5 font-bold uppercase outline-none focus:border-primary"
             />
             <button
               type="submit"
