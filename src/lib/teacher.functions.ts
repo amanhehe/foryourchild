@@ -18,6 +18,20 @@ export type ChildClassroomRow = {
   join_code: string;
 };
 
+export type PupilRow = {
+  id: string;
+  name: string;
+  avatar: string | null;
+  level: number;
+  xp: number;
+  coins: number;
+  streak: number;
+  literacy_score: number;
+  reading_level: string | null;
+  updated_at: string;
+};
+
+
 const joinCodeSchema = z
   .string()
   .trim()
@@ -60,6 +74,52 @@ export const createClassroom = createServerFn({ method: "POST" })
     if (error) throw error;
     return { ok: true };
   });
+
+
+
+// List pupils in a classroom owned by the signed-in teacher with their progress.
+export const listClassroomPupils = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d: unknown) => z.object({ classroomId: z.string().uuid() }).parse(d))
+  .handler(async ({ data, context }) => {
+    // Verify ownership first
+    const { data: room, error: roomError } = await context.supabase
+      .from("classrooms")
+      .select("id")
+      .eq("id", data.classroomId)
+      .eq("teacher_id", context.userId)
+      .maybeSingle();
+    if (roomError) throw roomError;
+    if (!room) throw new Error("Classroom not found.");
+
+    const { data: rows, error } = await context.supabase
+      .from("classroom_children")
+      .select(
+        "child_id, children(id, name, avatar, level, xp, coins, streak, literacy_score, reading_level, updated_at)",
+      )
+      .eq("classroom_id", data.classroomId);
+    if (error) throw error;
+
+    return (rows ?? []).flatMap((row: any) => {
+      const c = Array.isArray(row.children) ? row.children[0] : row.children;
+      if (!c) return [];
+      return [
+        {
+          id: c.id,
+          name: c.name,
+          avatar: c.avatar,
+          level: c.level,
+          xp: c.xp,
+          coins: c.coins,
+          streak: c.streak,
+          literacy_score: c.literacy_score,
+          reading_level: c.reading_level,
+          updated_at: c.updated_at,
+        },
+      ];
+    }) as PupilRow[];
+  });
+
 
 // List classes each of the signed-in parent's children have joined.
 export const listChildClassrooms = createServerFn({ method: "GET" })
