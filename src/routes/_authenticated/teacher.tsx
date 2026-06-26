@@ -14,6 +14,29 @@ export const Route = createFileRoute("/_authenticated/teacher")({
   component: TeacherPage,
 });
 
+function isGuestMode() {
+  if (typeof window === "undefined") return false;
+  return window.localStorage.getItem("buddy_guest") === "1";
+}
+
+function getGuestRooms(): ClassroomRow[] {
+  if (typeof window === "undefined") return [];
+  try {
+    return JSON.parse(window.localStorage.getItem("guestClassrooms") || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function saveGuestRooms(rooms: ClassroomRow[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem("guestClassrooms", JSON.stringify(rooms));
+}
+
+function randomCode() {
+  return Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
 function TeacherPage() {
   const list = useServerFn(listClassrooms);
   const create = useServerFn(createClassroom);
@@ -26,6 +49,11 @@ function TeacherPage() {
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
+    if (isGuestMode()) {
+      setRooms(getGuestRooms());
+      setLoading(false);
+      return;
+    }
     try {
       await ensureRole({});
       const data = await list({});
@@ -45,12 +73,27 @@ function TeacherPage() {
     e.preventDefault();
     setBusy(true);
     try {
-      await create({ data: { name, yearLevel: year || undefined } });
+      if (isGuestMode()) {
+        const next: ClassroomRow[] = [
+          ...getGuestRooms(),
+          {
+            id: `guest-${Date.now()}`,
+            name,
+            year_level: year || null,
+            join_code: randomCode(),
+            member_count: 0,
+          },
+        ];
+        saveGuestRooms(next);
+        setRooms(next);
+      } else {
+        await create({ data: { name, yearLevel: year || undefined } });
+        await load();
+      }
       toast.success("Classroom created! 🎉");
       setName("");
       setYear("");
       setShowForm(false);
-      await load();
     } catch {
       toast.error("Couldn't create classroom.");
     } finally {
