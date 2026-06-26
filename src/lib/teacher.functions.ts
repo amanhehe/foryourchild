@@ -18,6 +18,20 @@ export type ChildClassroomRow = {
   join_code: string;
 };
 
+export type PupilRow = {
+  id: string;
+  name: string;
+  avatar: string | null;
+  level: number;
+  xp: number;
+  coins: number;
+  streak: number;
+  literacy_score: number;
+  reading_level: string | null;
+  updated_at: string;
+};
+
+
 const joinCodeSchema = z
   .string()
   .trim()
