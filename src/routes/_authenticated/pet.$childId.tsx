@@ -37,7 +37,7 @@ function PetPage() {
   useEffect(() => {
     if (childId.startsWith("guest-")) {
       try {
-        const raw = localStorage.getItem("guestChildren");
+        const raw = localStorage.getItem("buddy_guest_children");
         const list = raw ? (JSON.parse(raw) as any[]) : [];
         const g = list.find((c) => c.id === childId);
         setChild({

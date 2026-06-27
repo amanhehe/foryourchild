@@ -24,7 +24,7 @@ function speak(text: string) {
 
 function guestChildName(childId: string): string {
   try {
-    const raw = localStorage.getItem("guestChildren");
+    const raw = localStorage.getItem("buddy_guest_children");
     if (!raw) return "Buddy";
     const list = JSON.parse(raw) as Array<{ id: string; name: string }>;
     return list.find((c) => c.id === childId)?.name || "Buddy";

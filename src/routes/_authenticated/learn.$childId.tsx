@@ -116,7 +116,7 @@ function LearnPage() {
   const guestLesson = useCallback(() => {
     let name = "Friend";
     try {
-      const stored = JSON.parse(localStorage.getItem("guest_children") || "[]");
+      const stored = JSON.parse(localStorage.getItem("buddy_guest_children") || "[]");
       const found = stored.find((c: any) => c.id === childId);
       if (found?.name) name = found.name;
     } catch { /* ignore */ }
@@ -219,8 +219,34 @@ function LearnPage() {
   }
 
   async function finish() {
+    const totalAsked = words.length + sentences.length;
     const xp = correctCount * 20 + words.length * 5 + sentences.length * 5;
-    if (!isGuest) {
+    if (isGuest) {
+      try {
+        const raw = localStorage.getItem("buddy_guest_children");
+        const list = raw ? (JSON.parse(raw) as any[]) : [];
+        const i = list.findIndex((c) => c.id === childId);
+        if (i >= 0) {
+          const prev = list[i];
+          const newXp = (prev.xp ?? 0) + xp;
+          const newCoins = (prev.coins ?? 0) + coins;
+          const newLevel = Math.max(1, Math.floor(newXp / 100) + 1);
+          const accuracy = totalAsked > 0 ? Math.round((correctCount / totalAsked) * 100) : 0;
+          const prevScore = prev.literacy_score ?? 0;
+          const newScore = Math.min(100, Math.round(prevScore * 0.7 + accuracy * 0.3));
+          list[i] = {
+            ...prev,
+            xp: newXp,
+            coins: newCoins,
+            level: newLevel,
+            streak: (prev.streak ?? 0) + 1,
+            literacy_score: newScore,
+            updated_at: new Date().toISOString(),
+          };
+          localStorage.setItem("buddy_guest_children", JSON.stringify(list));
+        }
+      } catch { /* ignore */ }
+    } else {
       try {
         await award({
           data: {
@@ -228,7 +254,7 @@ function LearnPage() {
             xp,
             coins,
             correct: correctCount,
-            total: words.length + sentences.length,
+            total: totalAsked,
           },
         });
       } catch {
