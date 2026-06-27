@@ -116,7 +116,7 @@ function LearnPage() {
   const guestLesson = useCallback(() => {
     let name = "Friend";
     try {
-      const stored = JSON.parse(localStorage.getItem("guest_children") || "[]");
+      const stored = JSON.parse(localStorage.getItem("buddy_guest_children") || "[]");
       const found = stored.find((c: any) => c.id === childId);
       if (found?.name) name = found.name;
     } catch { /* ignore */ }
