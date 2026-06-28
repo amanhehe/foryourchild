@@ -364,6 +364,9 @@ function LearnPage() {
                     <div className={`text-5xl ${lastCorrect ? "" : "opacity-90"}`}>
                       {lastCorrect ? "🌟" : "💪"}
                     </div>
+                    {!lastCorrect && heardText && (
+                      <p className="mt-2 text-sm font-bold text-muted-foreground">I heard: “{heardText}”</p>
+                    )}
                     <p className="mt-2 text-lg font-bold">{feedback}</p>
                     {lastCorrect ? (
                       <button
@@ -438,6 +441,9 @@ function LearnPage() {
                     <div className={`text-5xl ${lastCorrect ? "" : "opacity-90"}`}>
                       {lastCorrect ? "🌟" : "💪"}
                     </div>
+                    {!lastCorrect && heardText && (
+                      <p className="mt-2 text-sm font-bold text-muted-foreground">I heard: “{heardText}”</p>
+                    )}
                     <p className="mt-2 text-lg font-bold">{feedback}</p>
                     {lastCorrect ? (
                       <button
