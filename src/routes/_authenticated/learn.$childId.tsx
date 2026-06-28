@@ -13,67 +13,13 @@ type Word = { word: string; phonemes: string; hint: string };
 type Stage = "words" | "reading";
 type Phase = "loading" | "ready" | "listening" | "checking" | "result" | "done";
 
-const optionalSpeechWords = new Set(["a", "an", "the", "um", "uh", "please"]);
-
-function speechTokens(text: string, { keepArticles = false }: { keepArticles?: boolean } = {}) {
-  const tokens = text
-    .toLowerCase()
-    .replace(/[^a-z\s]/g, " ")
-    .split(/\s+/)
-    .filter(Boolean);
-
-  return keepArticles ? tokens : tokens.filter((token) => !optionalSpeechWords.has(token));
+function normalizeSpeech(text: string) {
+  return text.toLowerCase().replace(/[^a-z ]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function levenshtein(a: string, b: string) {
-  const dp = Array.from({ length: a.length + 1 }, (_, i) =>
-    Array.from({ length: b.length + 1 }, (__, j) => (i === 0 ? j : j === 0 ? i : 0)),
-  );
-
-  for (let i = 1; i <= a.length; i += 1) {
-    for (let j = 1; j <= b.length; j += 1) {
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
-    }
-  }
-
-  return dp[a.length][b.length];
-}
-
-function closeToken(a: string, b: string) {
-  if (a === b) return true;
-  if (a.length >= 5 && b.length >= 5 && levenshtein(a, b) <= 1) return true;
-  return false;
-}
-
-function isLikelyCorrectSpeech(target: string, heard: string, mode: Stage) {
-  const targetWords = speechTokens(target, { keepArticles: mode === "words" });
-  const heardWords = speechTokens(heard, { keepArticles: mode === "words" });
-  if (!targetWords.length || !heardWords.length) return false;
-
-  if (mode === "words") {
-    const targetWord = targetWords[targetWords.length - 1];
-    return heardWords.some((word) => closeToken(targetWord, word));
-  }
-
-  const targetPhrase = targetWords.join(" ");
-  const heardPhrase = heardWords.join(" ");
-  if (targetPhrase === heardPhrase || heardPhrase.includes(targetPhrase)) return true;
-
-  let heardIndex = 0;
-  let matches = 0;
-  for (const targetWord of targetWords) {
-    while (heardIndex < heardWords.length) {
-      if (closeToken(targetWord, heardWords[heardIndex])) {
-        matches += 1;
-        heardIndex += 1;
-        break;
-      }
-      heardIndex += 1;
-    }
-  }
-
-  return matches === targetWords.length;
+function pickBestTranscript(target: string, alternatives: string[]) {
+  const exact = normalizeSpeech(target);
+  return alternatives.find((transcript) => normalizeSpeech(transcript) === exact) ?? alternatives[0] ?? "";
 }
 
 const quickPictures: Record<string, string> = {
