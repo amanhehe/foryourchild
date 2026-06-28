@@ -95,7 +95,7 @@ function getRecognition(): any {
   const r = new SR();
   r.lang = "en-US";
   r.interimResults = false;
-  r.maxAlternatives = 1;
+  r.maxAlternatives = 5;
   return r;
 }
 
@@ -115,6 +115,7 @@ function LearnPage() {
   const [idx, setIdx] = useState(0);
   const [sIdx, setSIdx] = useState(0);
   const [feedback, setFeedback] = useState("");
+  const [heardText, setHeardText] = useState("");
   const [lastCorrect, setLastCorrect] = useState(false);
   const [correctCount, setCorrectCount] = useState(0);
   const [coins, setCoins] = useState(0);
@@ -155,6 +156,7 @@ function LearnPage() {
     setCorrectCount(0);
     setCoins(0);
     setFeedback("");
+    setHeardText("");
     try {
       const res = isGuest ? guestLesson() : await fetchLesson({ data: { childId } });
       setFocusSound(res.focusSound);
@@ -182,9 +184,13 @@ function LearnPage() {
     }
     recRef.current = rec;
     setFeedback("");
+    setHeardText("");
     setPhase("listening");
     rec.onresult = async (e: any) => {
-      const heard = e.results[0]?.[0]?.transcript ?? "";
+      const alternatives = Array.from(e.results[0] ?? [])
+        .map((alt: any) => String(alt?.transcript ?? ""))
+        .filter(Boolean);
+      const heard = pickBestTranscript(target, alternatives);
       await check(target, heard);
     };
     rec.onerror = () => {
@@ -199,14 +205,15 @@ function LearnPage() {
 
   async function check(target: string, heard: string) {
     setPhase("checking");
+    setHeardText(heard || "nothing clear");
     try {
       let r: { correct: boolean; score: number; feedback: string };
-      const localCorrect = isLikelyCorrectSpeech(target, heard, stage);
-      if (isGuest || localCorrect) {
+      if (isGuest) {
+        const correct = normalizeSpeech(heard) === normalizeSpeech(target);
         r = {
-          correct: localCorrect,
-          score: localCorrect ? 95 : 40,
-          feedback: localCorrect ? "Awesome — you said it perfectly!" : `Nice try! Listen: ${target}.`,
+          correct,
+          score: correct ? 95 : 40,
+          feedback: correct ? "Awesome — you said it perfectly!" : `I heard "${heard || "nothing clear"}". Try: ${target}.`,
         };
       } else {
         r = await score({ data: { childId, targetWord: target, heard } });
@@ -274,6 +281,7 @@ function LearnPage() {
 
   async function next() {
     setFeedback("");
+    setHeardText("");
     if (stage === "words") {
       if (idx + 1 >= words.length) {
         if (sentences.length > 0) {
