@@ -20,6 +20,70 @@ function parseJson(text: string): any {
   return JSON.parse(cleaned.slice(start, end + 1));
 }
 
+const optionalSpeechWords = new Set(["a", "an", "the", "um", "uh", "please"]);
+
+function speechTokens(text: string, keepArticles = false) {
+  const tokens = text
+    .toLowerCase()
+    .replace(/[^a-z\s]/g, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+
+  return keepArticles ? tokens : tokens.filter((token) => !optionalSpeechWords.has(token));
+}
+
+function levenshtein(a: string, b: string) {
+  const dp = Array.from({ length: a.length + 1 }, (_, i) =>
+    Array.from({ length: b.length + 1 }, (__, j) => (i === 0 ? j : j === 0 ? i : 0)),
+  );
+
+  for (let i = 1; i <= a.length; i += 1) {
+    for (let j = 1; j <= b.length; j += 1) {
+      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+      dp[i][j] = Math.min(dp[i - 1][j] + 1, dp[i][j - 1] + 1, dp[i - 1][j - 1] + cost);
+    }
+  }
+
+  return dp[a.length][b.length];
+}
+
+function closeToken(a: string, b: string) {
+  if (a === b) return true;
+  if (a.length >= 5 && b.length >= 5 && levenshtein(a, b) <= 1) return true;
+  return false;
+}
+
+function locallyCorrect(target: string, heard: string) {
+  const isSentence = /\s/.test(target.trim());
+  const targetWords = speechTokens(target, !isSentence);
+  const heardWords = speechTokens(heard, !isSentence);
+  if (!targetWords.length || !heardWords.length) return false;
+
+  if (!isSentence) {
+    const targetWord = targetWords[targetWords.length - 1];
+    return heardWords.some((word) => closeToken(targetWord, word));
+  }
+
+  const targetPhrase = targetWords.join(" ");
+  const heardPhrase = heardWords.join(" ");
+  if (targetPhrase === heardPhrase || heardPhrase.includes(targetPhrase)) return true;
+
+  let heardIndex = 0;
+  let matches = 0;
+  for (const targetWord of targetWords) {
+    while (heardIndex < heardWords.length) {
+      if (closeToken(targetWord, heardWords[heardIndex])) {
+        matches += 1;
+        heardIndex += 1;
+        break;
+      }
+      heardIndex += 1;
+    }
+  }
+
+  return matches === targetWords.length;
+}
+
 // Generate an adaptive list of practice words for a child.
 export const getLesson = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -72,12 +136,20 @@ export const scorePronunciation = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data }) => {
+    if (locallyCorrect(data.targetWord, data.heard)) {
+      return {
+        correct: true,
+        score: 95,
+        feedback: "Awesome — you said it perfectly!",
+      };
+    }
+
     const gateway = provider();
     const { text } = await generateText({
       model: gateway(MODEL),
-      prompt: `A young child was asked to say the word "${data.targetWord}".
+      prompt: `A young child was asked to say the word or short sentence "${data.targetWord}".
 A speech recogniser transcribed what they said as: "${data.heard || "(nothing clear)"}".
-Decide if they pronounced it correctly (allow for recogniser noise and close matches).
+Decide if they pronounced it correctly. Be forgiving of recogniser noise, missing starter words like "a" or "the", and close matches where the important phonics words are present in order.
 Respond with ONLY valid JSON in exactly this shape (no markdown, no extra text):
 {"correct":true,"score":90,"feedback":"Great job!"}
 "feedback" is a single short, warm, encouraging sentence a 5-year-old would love. If wrong, gently model the correct sounds.`,
