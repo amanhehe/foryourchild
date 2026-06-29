@@ -17,6 +17,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedStoryChildIdRouteImport } from './routes/_authenticated/story.$childId'
 import { Route as AuthenticatedPetChildIdRouteImport } from './routes/_authenticated/pet.$childId'
 import { Route as AuthenticatedLearnChildIdRouteImport } from './routes/_authenticated/learn.$childId'
+import { Route as AuthenticatedGamesChildIdRouteImport } from './routes/_authenticated/games.$childId'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -59,12 +60,19 @@ const AuthenticatedLearnChildIdRoute =
     path: '/learn/$childId',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedGamesChildIdRoute =
+  AuthenticatedGamesChildIdRouteImport.update({
+    id: '/games/$childId',
+    path: '/games/$childId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/teacher': typeof AuthenticatedTeacherRoute
+  '/games/$childId': typeof AuthenticatedGamesChildIdRoute
   '/learn/$childId': typeof AuthenticatedLearnChildIdRoute
   '/pet/$childId': typeof AuthenticatedPetChildIdRoute
   '/story/$childId': typeof AuthenticatedStoryChildIdRoute
@@ -74,6 +82,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/teacher': typeof AuthenticatedTeacherRoute
+  '/games/$childId': typeof AuthenticatedGamesChildIdRoute
   '/learn/$childId': typeof AuthenticatedLearnChildIdRoute
   '/pet/$childId': typeof AuthenticatedPetChildIdRoute
   '/story/$childId': typeof AuthenticatedStoryChildIdRoute
@@ -85,6 +94,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/teacher': typeof AuthenticatedTeacherRoute
+  '/_authenticated/games/$childId': typeof AuthenticatedGamesChildIdRoute
   '/_authenticated/learn/$childId': typeof AuthenticatedLearnChildIdRoute
   '/_authenticated/pet/$childId': typeof AuthenticatedPetChildIdRoute
   '/_authenticated/story/$childId': typeof AuthenticatedStoryChildIdRoute
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/teacher'
+    | '/games/$childId'
     | '/learn/$childId'
     | '/pet/$childId'
     | '/story/$childId'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/dashboard'
     | '/teacher'
+    | '/games/$childId'
     | '/learn/$childId'
     | '/pet/$childId'
     | '/story/$childId'
@@ -115,6 +127,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/_authenticated/dashboard'
     | '/_authenticated/teacher'
+    | '/_authenticated/games/$childId'
     | '/_authenticated/learn/$childId'
     | '/_authenticated/pet/$childId'
     | '/_authenticated/story/$childId'
@@ -184,12 +197,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedLearnChildIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/games/$childId': {
+      id: '/_authenticated/games/$childId'
+      path: '/games/$childId'
+      fullPath: '/games/$childId'
+      preLoaderRoute: typeof AuthenticatedGamesChildIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedTeacherRoute: typeof AuthenticatedTeacherRoute
+  AuthenticatedGamesChildIdRoute: typeof AuthenticatedGamesChildIdRoute
   AuthenticatedLearnChildIdRoute: typeof AuthenticatedLearnChildIdRoute
   AuthenticatedPetChildIdRoute: typeof AuthenticatedPetChildIdRoute
   AuthenticatedStoryChildIdRoute: typeof AuthenticatedStoryChildIdRoute
@@ -198,6 +219,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedTeacherRoute: AuthenticatedTeacherRoute,
+  AuthenticatedGamesChildIdRoute: AuthenticatedGamesChildIdRoute,
   AuthenticatedLearnChildIdRoute: AuthenticatedLearnChildIdRoute,
   AuthenticatedPetChildIdRoute: AuthenticatedPetChildIdRoute,
   AuthenticatedStoryChildIdRoute: AuthenticatedStoryChildIdRoute,
@@ -214,13 +236,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
