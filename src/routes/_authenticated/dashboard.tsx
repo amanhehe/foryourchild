@@ -489,18 +489,25 @@ function Dashboard() {
                 >
                   🎤 Start learning
                 </Link>
-                <div className="mt-2 grid grid-cols-2 gap-2">
+                <div className="mt-2 grid grid-cols-3 gap-2">
                   <Link
                     to="/story/$childId"
                     params={{ childId: c.id }}
-                    className="rounded-full border-2 border-border px-3 py-2 text-center text-sm font-bold transition-transform hover:scale-105"
+                    className="rounded-full border-2 border-border px-2 py-2 text-center text-sm font-bold transition-transform hover:scale-105"
                   >
                     📖 Story
                   </Link>
                   <Link
+                    to="/games/$childId"
+                    params={{ childId: c.id }}
+                    className="rounded-full border-2 border-border px-2 py-2 text-center text-sm font-bold transition-transform hover:scale-105"
+                  >
+                    🎮 Games
+                  </Link>
+                  <Link
                     to="/pet/$childId"
                     params={{ childId: c.id }}
-                    className="rounded-full border-2 border-border px-3 py-2 text-center text-sm font-bold transition-transform hover:scale-105"
+                    className="rounded-full border-2 border-border px-2 py-2 text-center text-sm font-bold transition-transform hover:scale-105"
                   >
                     🐲 Pet
                   </Link>
