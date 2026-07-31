@@ -10,6 +10,7 @@ import {
   type ClassroomRow,
 } from "@/lib/teacher.functions";
 import { toast } from "sonner";
+import { track } from "@/lib/clickstream";
 import buddyOwl from "@/assets/buddy-owl.png";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -162,6 +163,10 @@ function Dashboard() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    track({ context: "Site: Parent dashboard", component: "System", event: "Dashboard viewed" });
+  }, []);
+
   async function addChild(e: React.FormEvent) {
     e.preventDefault();
     const childName = name.trim();
@@ -297,6 +302,12 @@ function Dashboard() {
           <span className="font-display text-lg font-bold">Parent Dashboard</span>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            to="/activity"
+            className="rounded-full border-2 border-border px-4 py-2 text-sm font-bold transition-transform hover:scale-105"
+          >
+            📊 Activity
+          </Link>
           <Link
             to="/teacher"
             className="rounded-full border-2 border-border px-4 py-2 text-sm font-bold transition-transform hover:scale-105"
