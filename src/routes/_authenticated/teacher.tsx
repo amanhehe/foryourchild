@@ -10,6 +10,7 @@ import {
   type PupilRow,
 } from "@/lib/teacher.functions";
 import { toast } from "sonner";
+import { track } from "@/lib/clickstream";
 import buddyOwl from "@/assets/buddy-owl.png";
 
 export const Route = createFileRoute("/_authenticated/teacher")({
@@ -99,6 +100,10 @@ function TeacherPage() {
       setLoading(false);
     }
   }, [list, ensureRole]);
+
+  useEffect(() => {
+    track({ context: "Site: Teacher dashboard", component: "System", event: "Teacher dashboard viewed" });
+  }, []);
 
   useEffect(() => {
     load();

@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { track } from "@/lib/clickstream";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -33,6 +34,10 @@ function PetPage() {
   const { childId } = Route.useParams();
   const [child, setChild] = useState<Child | null>(null);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    track({ context: "Course: Pet den", component: "Pet", event: "Pet den viewed" });
+  }, []);
 
   useEffect(() => {
     if (childId.startsWith("guest-")) {

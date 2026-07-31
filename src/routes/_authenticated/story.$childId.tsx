@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { generateStory } from "@/lib/story.functions";
 import { toast } from "sonner";
+import { track } from "@/lib/clickstream";
 import buddyOwl from "@/assets/buddy-owl.png";
 
 export const Route = createFileRoute("/_authenticated/story/$childId")({
@@ -88,6 +89,10 @@ function StoryPage() {
     [childId, make, isGuest],
   );
 
+
+  useEffect(() => {
+    track({ context: "Course: Story studio", component: "Story", event: "Story studio viewed" });
+  }, []);
 
   useEffect(() => {
     return () => window.speechSynthesis?.cancel();
