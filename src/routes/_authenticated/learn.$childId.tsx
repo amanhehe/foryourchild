@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { getLesson, scorePronunciation, awardProgress } from "@/lib/learn.functions";
 import { toast } from "sonner";
+import { track } from "@/lib/clickstream";
 import buddyOwl from "@/assets/buddy-owl.png";
 
 export const Route = createFileRoute("/_authenticated/learn/$childId")({
@@ -173,6 +174,15 @@ function LearnPage() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    track({
+      context: "Course: Voice reading session",
+      component: "Lesson",
+      event: "Lesson session started",
+      childId,
+    });
+  }, [childId]);
+
   const current = words[idx];
   const currentSentence = sentences[sIdx];
 
@@ -218,6 +228,15 @@ function LearnPage() {
       } else {
         r = await score({ data: { childId, targetWord: target, heard } });
       }
+      track({
+        context: "Course: Voice reading session",
+        component: stage === "reading" ? "Reading" : "Pronunciation",
+        event: r.correct ? "Pronunciation correct" : "Pronunciation incorrect",
+        target,
+        action: "speak",
+        childId,
+        meta: { heard, score: r.score, stage },
+      });
       setLastCorrect(r.correct);
       setFeedback(r.feedback);
       if (r.correct) {
@@ -275,6 +294,13 @@ function LearnPage() {
         /* non-blocking */
       }
     }
+    track({
+      context: "Course: Voice reading session",
+      component: "Lesson",
+      event: "Lesson session completed",
+      childId,
+      meta: { correct: correctCount, total: totalAsked, xp, coins },
+    });
     setPhase("done");
     speak(`Amazing work ${childName}! You earned ${coins} coins!`);
   }

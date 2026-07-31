@@ -14,8 +14,10 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedTeacherRouteImport } from './routes/_authenticated/teacher'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedActivityRouteImport } from './routes/_authenticated/activity'
 import { Route as AuthenticatedStoryChildIdRouteImport } from './routes/_authenticated/story.$childId'
 import { Route as AuthenticatedPetChildIdRouteImport } from './routes/_authenticated/pet.$childId'
+import { Route as AuthenticatedLessonsChildIdRouteImport } from './routes/_authenticated/lessons.$childId'
 import { Route as AuthenticatedLearnChildIdRouteImport } from './routes/_authenticated/learn.$childId'
 import { Route as AuthenticatedGamesChildIdRouteImport } from './routes/_authenticated/games.$childId'
 
@@ -43,6 +45,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedActivityRoute = AuthenticatedActivityRouteImport.update({
+  id: '/activity',
+  path: '/activity',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedStoryChildIdRoute =
   AuthenticatedStoryChildIdRouteImport.update({
     id: '/story/$childId',
@@ -54,6 +61,12 @@ const AuthenticatedPetChildIdRoute = AuthenticatedPetChildIdRouteImport.update({
   path: '/pet/$childId',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedLessonsChildIdRoute =
+  AuthenticatedLessonsChildIdRouteImport.update({
+    id: '/lessons/$childId',
+    path: '/lessons/$childId',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedLearnChildIdRoute =
   AuthenticatedLearnChildIdRouteImport.update({
     id: '/learn/$childId',
@@ -70,20 +83,24 @@ const AuthenticatedGamesChildIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/activity': typeof AuthenticatedActivityRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/teacher': typeof AuthenticatedTeacherRoute
   '/games/$childId': typeof AuthenticatedGamesChildIdRoute
   '/learn/$childId': typeof AuthenticatedLearnChildIdRoute
+  '/lessons/$childId': typeof AuthenticatedLessonsChildIdRoute
   '/pet/$childId': typeof AuthenticatedPetChildIdRoute
   '/story/$childId': typeof AuthenticatedStoryChildIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRoute
+  '/activity': typeof AuthenticatedActivityRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/teacher': typeof AuthenticatedTeacherRoute
   '/games/$childId': typeof AuthenticatedGamesChildIdRoute
   '/learn/$childId': typeof AuthenticatedLearnChildIdRoute
+  '/lessons/$childId': typeof AuthenticatedLessonsChildIdRoute
   '/pet/$childId': typeof AuthenticatedPetChildIdRoute
   '/story/$childId': typeof AuthenticatedStoryChildIdRoute
 }
@@ -92,10 +109,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRoute
+  '/_authenticated/activity': typeof AuthenticatedActivityRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/teacher': typeof AuthenticatedTeacherRoute
   '/_authenticated/games/$childId': typeof AuthenticatedGamesChildIdRoute
   '/_authenticated/learn/$childId': typeof AuthenticatedLearnChildIdRoute
+  '/_authenticated/lessons/$childId': typeof AuthenticatedLessonsChildIdRoute
   '/_authenticated/pet/$childId': typeof AuthenticatedPetChildIdRoute
   '/_authenticated/story/$childId': typeof AuthenticatedStoryChildIdRoute
 }
@@ -104,20 +123,24 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/activity'
     | '/dashboard'
     | '/teacher'
     | '/games/$childId'
     | '/learn/$childId'
+    | '/lessons/$childId'
     | '/pet/$childId'
     | '/story/$childId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/auth'
+    | '/activity'
     | '/dashboard'
     | '/teacher'
     | '/games/$childId'
     | '/learn/$childId'
+    | '/lessons/$childId'
     | '/pet/$childId'
     | '/story/$childId'
   id:
@@ -125,10 +148,12 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/activity'
     | '/_authenticated/dashboard'
     | '/_authenticated/teacher'
     | '/_authenticated/games/$childId'
     | '/_authenticated/learn/$childId'
+    | '/_authenticated/lessons/$childId'
     | '/_authenticated/pet/$childId'
     | '/_authenticated/story/$childId'
   fileRoutesById: FileRoutesById
@@ -176,6 +201,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/activity': {
+      id: '/_authenticated/activity'
+      path: '/activity'
+      fullPath: '/activity'
+      preLoaderRoute: typeof AuthenticatedActivityRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/story/$childId': {
       id: '/_authenticated/story/$childId'
       path: '/story/$childId'
@@ -188,6 +220,13 @@ declare module '@tanstack/react-router' {
       path: '/pet/$childId'
       fullPath: '/pet/$childId'
       preLoaderRoute: typeof AuthenticatedPetChildIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/lessons/$childId': {
+      id: '/_authenticated/lessons/$childId'
+      path: '/lessons/$childId'
+      fullPath: '/lessons/$childId'
+      preLoaderRoute: typeof AuthenticatedLessonsChildIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/learn/$childId': {
@@ -208,19 +247,23 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedActivityRoute: typeof AuthenticatedActivityRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedTeacherRoute: typeof AuthenticatedTeacherRoute
   AuthenticatedGamesChildIdRoute: typeof AuthenticatedGamesChildIdRoute
   AuthenticatedLearnChildIdRoute: typeof AuthenticatedLearnChildIdRoute
+  AuthenticatedLessonsChildIdRoute: typeof AuthenticatedLessonsChildIdRoute
   AuthenticatedPetChildIdRoute: typeof AuthenticatedPetChildIdRoute
   AuthenticatedStoryChildIdRoute: typeof AuthenticatedStoryChildIdRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedActivityRoute: AuthenticatedActivityRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedTeacherRoute: AuthenticatedTeacherRoute,
   AuthenticatedGamesChildIdRoute: AuthenticatedGamesChildIdRoute,
   AuthenticatedLearnChildIdRoute: AuthenticatedLearnChildIdRoute,
+  AuthenticatedLessonsChildIdRoute: AuthenticatedLessonsChildIdRoute,
   AuthenticatedPetChildIdRoute: AuthenticatedPetChildIdRoute,
   AuthenticatedStoryChildIdRoute: AuthenticatedStoryChildIdRoute,
 }

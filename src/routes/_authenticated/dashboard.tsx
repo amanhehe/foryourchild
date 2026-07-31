@@ -10,6 +10,7 @@ import {
   type ClassroomRow,
 } from "@/lib/teacher.functions";
 import { toast } from "sonner";
+import { track } from "@/lib/clickstream";
 import buddyOwl from "@/assets/buddy-owl.png";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
@@ -162,6 +163,10 @@ function Dashboard() {
     load();
   }, [load]);
 
+  useEffect(() => {
+    track({ context: "Site: Parent dashboard", component: "System", event: "Dashboard viewed" });
+  }, []);
+
   async function addChild(e: React.FormEvent) {
     e.preventDefault();
     const childName = name.trim();
@@ -297,6 +302,12 @@ function Dashboard() {
           <span className="font-display text-lg font-bold">Parent Dashboard</span>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            to="/activity"
+            className="rounded-full border-2 border-border px-4 py-2 text-sm font-bold transition-transform hover:scale-105"
+          >
+            📊 Activity
+          </Link>
           <Link
             to="/teacher"
             className="rounded-full border-2 border-border px-4 py-2 text-sm font-bold transition-transform hover:scale-105"
@@ -485,9 +496,34 @@ function Dashboard() {
                 <Link
                   to="/learn/$childId"
                   params={{ childId: c.id }}
+                  onClick={() =>
+                    track({
+                      context: "Site: Parent dashboard",
+                      component: "Navigation",
+                      event: "Learning session started",
+                      target: c.name,
+                      childId: c.id,
+                    })
+                  }
                   className="mt-4 block rounded-full bg-gradient-warm px-5 py-2.5 text-center font-bold text-primary-foreground shadow-soft transition-transform hover:scale-105"
                 >
                   🎤 Start learning
+                </Link>
+                <Link
+                  to="/lessons/$childId"
+                  params={{ childId: c.id }}
+                  onClick={() =>
+                    track({
+                      context: "Site: Parent dashboard",
+                      component: "Navigation",
+                      event: "Course module opened",
+                      target: c.name,
+                      childId: c.id,
+                    })
+                  }
+                  className="mt-2 block rounded-full bg-primary px-5 py-2.5 text-center font-bold text-primary-foreground shadow-pop transition-transform hover:scale-105"
+                >
+                  🎬 Lessons & quizzes
                 </Link>
                 <div className="mt-2 grid grid-cols-3 gap-2">
                   <Link
@@ -512,6 +548,7 @@ function Dashboard() {
                     🐲 Pet
                   </Link>
                 </div>
+
               </div>
             ))}
           </div>

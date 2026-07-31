@@ -149,6 +149,68 @@ export type Database = {
         }
         Relationships: []
       }
+      learning_events: {
+        Row: {
+          action: string | null
+          child_id: string | null
+          component: string
+          created_at: string
+          description: string
+          event_context: string
+          event_name: string
+          id: string
+          meta: Json
+          occurred_at: string
+          origin: string
+          route: string | null
+          session_id: string
+          target: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action?: string | null
+          child_id?: string | null
+          component: string
+          created_at?: string
+          description: string
+          event_context: string
+          event_name: string
+          id?: string
+          meta?: Json
+          occurred_at?: string
+          origin?: string
+          route?: string | null
+          session_id: string
+          target?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string | null
+          child_id?: string | null
+          component?: string
+          created_at?: string
+          description?: string
+          event_context?: string
+          event_name?: string
+          id?: string
+          meta?: Json
+          occurred_at?: string
+          origin?: string
+          route?: string | null
+          session_id?: string
+          target?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "learning_events_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -175,6 +237,50 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      quiz_attempts: {
+        Row: {
+          answers: Json
+          child_id: string | null
+          created_at: string
+          duration_ms: number
+          id: string
+          quiz_id: string
+          score: number
+          total: number
+          user_id: string | null
+        }
+        Insert: {
+          answers?: Json
+          child_id?: string | null
+          created_at?: string
+          duration_ms?: number
+          id?: string
+          quiz_id: string
+          score?: number
+          total?: number
+          user_id?: string | null
+        }
+        Update: {
+          answers?: Json
+          child_id?: string | null
+          created_at?: string
+          duration_ms?: number
+          id?: string
+          quiz_id?: string
+          score?: number
+          total?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quiz_attempts_child_id_fkey"
+            columns: ["child_id"]
+            isOneToOne: false
+            referencedRelation: "children"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
