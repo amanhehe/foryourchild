@@ -9,6 +9,8 @@ import {
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
 
+import { Toaster } from "@/components/ui/sonner";
+import { track } from "../lib/clickstream";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
@@ -132,13 +134,37 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function useGlobalClickTracking() {
+  useEffect(() => {
+    function onClick(event: MouseEvent) {
+      const el = (event.target as HTMLElement | null)?.closest(
+        "button, a, [role='button'], input[type='submit']",
+      ) as HTMLElement | null;
+      if (!el) return;
+      const label = (el.getAttribute("aria-label") || el.textContent || "").trim().slice(0, 80);
+      track({
+        context: `Page: ${window.location.pathname}`,
+        component: "UI",
+        event: el.tagName === "A" ? "Link clicked" : "Button clicked",
+        target: label || el.tagName.toLowerCase(),
+        action: "click",
+        meta: { tag: el.tagName.toLowerCase(), href: el.getAttribute("href") },
+      });
+    }
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, []);
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  useGlobalClickTracking();
 
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <Toaster richColors position="top-center" />
     </QueryClientProvider>
   );
 }
