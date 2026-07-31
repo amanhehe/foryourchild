@@ -485,9 +485,34 @@ function Dashboard() {
                 <Link
                   to="/learn/$childId"
                   params={{ childId: c.id }}
+                  onClick={() =>
+                    track({
+                      context: "Site: Parent dashboard",
+                      component: "Navigation",
+                      event: "Learning session started",
+                      target: c.name,
+                      childId: c.id,
+                    })
+                  }
                   className="mt-4 block rounded-full bg-gradient-warm px-5 py-2.5 text-center font-bold text-primary-foreground shadow-soft transition-transform hover:scale-105"
                 >
                   🎤 Start learning
+                </Link>
+                <Link
+                  to="/lessons/$childId"
+                  params={{ childId: c.id }}
+                  onClick={() =>
+                    track({
+                      context: "Site: Parent dashboard",
+                      component: "Navigation",
+                      event: "Course module opened",
+                      target: c.name,
+                      childId: c.id,
+                    })
+                  }
+                  className="mt-2 block rounded-full bg-primary px-5 py-2.5 text-center font-bold text-primary-foreground shadow-pop transition-transform hover:scale-105"
+                >
+                  🎬 Lessons & quizzes
                 </Link>
                 <div className="mt-2 grid grid-cols-3 gap-2">
                   <Link
@@ -512,6 +537,7 @@ function Dashboard() {
                     🐲 Pet
                   </Link>
                 </div>
+
               </div>
             ))}
           </div>
