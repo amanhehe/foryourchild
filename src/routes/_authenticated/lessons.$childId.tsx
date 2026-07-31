@@ -4,6 +4,23 @@ import { track } from "@/lib/clickstream";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/lessons/$childId")({
+  head: () => ({
+    meta: [
+      { title: "Phonics Lessons, Videos & Quizzes — AI Phonics Buddy" },
+      {
+        name: "description",
+        content:
+          "Interactive phonics modules combining short reading text, teaching videos and quick quizzes for early readers.",
+      },
+      { property: "og:title", content: "Phonics Lessons, Videos & Quizzes — AI Phonics Buddy" },
+      {
+        property: "og:description",
+        content: "Text, video and quiz modules for short /a/, digraph sh and magic e.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: LessonsPage,
 });
 

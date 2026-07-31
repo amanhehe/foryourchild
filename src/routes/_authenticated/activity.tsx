@@ -12,6 +12,23 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/activity")({
+  head: () => ({
+    meta: [
+      { title: "Activity & Clickstream — AI Phonics Buddy" },
+      {
+        name: "description",
+        content:
+          "See every page view, click, video action and quiz answer logged by AI Phonics Buddy, and export the clickstream as CSV.",
+      },
+      { property: "og:title", content: "Activity & Clickstream — AI Phonics Buddy" },
+      {
+        property: "og:description",
+        content: "Moodle-style learning analytics log for every learner action.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: ActivityPage,
 });
 
