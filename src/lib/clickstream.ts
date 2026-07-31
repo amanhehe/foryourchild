@@ -108,7 +108,7 @@ export async function track(input: TrackInput): Promise<void> {
       target: input.target ?? null,
       action: input.action ?? null,
       route,
-      meta: input.meta ?? {},
+      meta: (input.meta ?? {}) as never,
     };
 
     if (user) {
