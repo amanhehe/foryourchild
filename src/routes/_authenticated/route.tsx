@@ -11,7 +11,7 @@ export const Route = createFileRoute("/_authenticated")({
       const guest =
         typeof window !== "undefined" && window.localStorage.getItem("buddy_guest") === "1";
       if (guest) return { user: null };
-      throw redirect({ to: "/auth" });
+      throw redirect({ to: "/auth", search: { next: undefined } });
     }
     return { user: data.session.user };
   },
