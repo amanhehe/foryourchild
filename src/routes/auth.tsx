@@ -164,7 +164,8 @@ function AuthPage() {
           type="button"
           onClick={() => {
             window.localStorage.setItem("buddy_guest", "1");
-            navigate({ to: "/dashboard" });
+            if (next) navigate({ to: next });
+            else navigate({ to: "/dashboard" });
           }}
           className="mt-4 w-full rounded-full py-3 text-sm font-bold text-muted-foreground transition-colors hover:text-foreground"
         >
