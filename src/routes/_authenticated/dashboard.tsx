@@ -47,7 +47,7 @@ type GuestClassMembership = {
 };
 
 function Dashboard() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, roles, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const joinRoom = useServerFn(joinClassroom);
   const listJoinedRooms = useServerFn(listChildClassrooms);
