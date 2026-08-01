@@ -22,6 +22,7 @@ function Landing() {
         </div>
         <Link
           to="/auth"
+          search={{ next: undefined }}
           className="rounded-full bg-primary px-5 py-2 font-bold text-primary-foreground shadow-soft transition-transform hover:scale-105"
         >
           Log in
@@ -43,12 +44,14 @@ function Landing() {
           <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row md:items-start">
             <Link
               to="/auth"
+              search={{ next: undefined }}
               className="w-full rounded-full bg-gradient-warm px-8 py-4 text-center text-lg font-bold text-primary-foreground shadow-pop transition-transform hover:scale-105 sm:w-auto"
             >
               Start free →
             </Link>
             <Link
               to="/auth"
+              search={{ next: "/teacher" }}
               className="w-full rounded-full border-2 border-border bg-card px-8 py-4 text-center text-lg font-bold transition-transform hover:scale-105 sm:w-auto"
             >
               I'm a teacher
@@ -91,6 +94,7 @@ function Landing() {
           </p>
           <Link
             to="/auth"
+            search={{ next: undefined }}
             className="mt-7 inline-block rounded-full bg-card px-8 py-4 text-lg font-bold text-foreground shadow-soft transition-transform hover:scale-105"
           >
             Get started free
