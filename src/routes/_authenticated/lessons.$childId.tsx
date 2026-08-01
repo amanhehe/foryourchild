@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { track } from "@/lib/clickstream";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/lessons/$childId")({
@@ -29,6 +30,7 @@ type Module = {
   title: string;
   emoji: string;
   say: string;
+  video: { src: string; poster?: string; caption: string };
   steps: { emoji: string; line: string; speak: string }[];
   words: { word: string; emoji: string }[];
   quiz: { q: string; options: { label: string; emoji: string }[]; answer: number }[];
@@ -40,6 +42,10 @@ const MODULES: Module[] = [
     title: "The 'a' sound",
     emoji: "🍎",
     say: "a says ah, like in cat",
+    video: {
+      src: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      caption: "Watch: the short 'a' sound in cat, hat and bat",
+    },
     steps: [
       { emoji: "🅰️", line: "a says “ah”.", speak: "a says ah" },
       { emoji: "🐱", line: "c – a – t makes cat!", speak: "c a t. cat!" },
@@ -83,6 +89,10 @@ const MODULES: Module[] = [
     title: "The 'sh' sound",
     emoji: "🤫",
     say: "sh says shhh, like a quiet sound",
+    video: {
+      src: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+      caption: "Watch: the 'sh' sound in ship, shell and fish",
+    },
     steps: [
       { emoji: "🤫", line: "s and h say “shhh”.", speak: "s h says shhh" },
       { emoji: "🚢", line: "Shhh… ship!", speak: "sh ip. ship!" },
@@ -126,6 +136,10 @@ const MODULES: Module[] = [
     title: "Magic e",
     emoji: "✨",
     say: "magic e makes the vowel say its name",
+    video: {
+      src: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+      caption: "Watch: how magic e turns kit into kite",
+    },
     steps: [
       { emoji: "✨", line: "A quiet e at the end is magic.", speak: "a quiet e at the end is magic" },
       { emoji: "🪁", line: "kit → kite. The i says its name!", speak: "kit. kite!" },
@@ -184,6 +198,9 @@ function LessonsPage() {
 
   const module = MODULES[active]!;
   const context = `Course: Phonics Buddy — ${module.title}`;
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const seenMilestones = useRef<Set<number>>(new Set());
+  const lastRate = useRef<number>(1);
 
   useEffect(() => {
     track({
@@ -197,7 +214,98 @@ function LessonsPage() {
     setAnswers([]);
     setSubmitted(false);
     startedAt.current = Date.now();
+    seenMilestones.current = new Set();
+    lastRate.current = 1;
   }, [active, childId, context, module.id]);
+
+  function videoPosition() {
+    const v = videoRef.current;
+    if (!v || !Number.isFinite(v.duration) || v.duration <= 0) return { position: 0, percent: 0 };
+    return { position: v.currentTime, percent: Math.round((v.currentTime / v.duration) * 100) };
+  }
+
+  function onVideoPlay() {
+    track({
+      context,
+      component: "Video",
+      event: "Video played",
+      target: module.id,
+      action: "play",
+      childId,
+      meta: videoPosition(),
+    });
+  }
+
+  function onVideoPause() {
+    const v = videoRef.current;
+    if (v && v.ended) return; // "completed" event covers this
+    track({
+      context,
+      component: "Video",
+      event: "Video paused",
+      target: module.id,
+      action: "pause",
+      childId,
+      meta: videoPosition(),
+    });
+  }
+
+  function onVideoSeeked() {
+    track({
+      context,
+      component: "Video",
+      event: "Video seeked",
+      target: module.id,
+      action: "seek",
+      childId,
+      meta: videoPosition(),
+    });
+  }
+
+  function onVideoRateChange() {
+    const v = videoRef.current;
+    if (!v || v.playbackRate === lastRate.current) return;
+    lastRate.current = v.playbackRate;
+    track({
+      context,
+      component: "Video",
+      event: "Video speed changed",
+      target: module.id,
+      action: "rate-change",
+      childId,
+      meta: { ...videoPosition(), playbackRate: v.playbackRate },
+    });
+  }
+
+  function onVideoTimeUpdate() {
+    const { percent, position } = videoPosition();
+    for (const milestone of [25, 50, 75]) {
+      if (percent >= milestone && !seenMilestones.current.has(milestone)) {
+        seenMilestones.current.add(milestone);
+        track({
+          context,
+          component: "Video",
+          event: `Video ${milestone}% reached`,
+          target: module.id,
+          action: "progress",
+          childId,
+          meta: { position, percent: milestone },
+        });
+      }
+    }
+  }
+
+  function onVideoEnded() {
+    track({
+      context,
+      component: "Video",
+      event: "Video completed",
+      target: module.id,
+      action: "complete",
+      childId,
+      meta: videoPosition(),
+    });
+  }
 
   function sayIt(text: string, target: string, event = "Audio played") {
     speak(text);
@@ -227,7 +335,13 @@ function LessonsPage() {
   async function submit() {
     const score = module.quiz.reduce((acc, q, i) => acc + (answers[i] === q.answer ? 1 : 0), 0);
     const duration = Date.now() - startedAt.current;
+    const perQuestion = module.quiz.map((q, i) => ({
+      question: q.q,
+      chosen: answers[i] !== undefined ? q.options[answers[i]!]!.label : null,
+      correct: answers[i] === q.answer,
+    }));
     setSubmitted(true);
+
     await track({
       context,
       component: "Quiz",
@@ -235,17 +349,29 @@ function LessonsPage() {
       target: module.id,
       action: "submit",
       childId,
-      meta: {
-        score,
-        total: module.quiz.length,
-        duration_ms: duration,
-        answers: module.quiz.map((q, i) => ({
-          question: q.q,
-          chosen: answers[i] !== undefined ? q.options[answers[i]!]!.label : null,
-          correct: answers[i] === q.answer,
-        })),
-      },
+      meta: { score, total: module.quiz.length, duration_ms: duration, answers: perQuestion },
     });
+
+    // Also record a row in quiz_attempts so teacher/admin progress views
+    // (which read this table, not the clickstream) actually see results.
+    try {
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user;
+      if (user && childId && !childId.startsWith("guest-")) {
+        await supabase.from("quiz_attempts").insert({
+          user_id: user.id,
+          child_id: childId,
+          quiz_id: module.id,
+          score,
+          total: module.quiz.length,
+          duration_ms: duration,
+          answers: perQuestion,
+        });
+      }
+    } catch {
+      /* quiz_attempts logging must never block the UI */
+    }
+
     speak(score === module.quiz.length ? "Wow! All correct!" : "Good try! Let's play again.");
     toast.success(`You got ${score} / ${module.quiz.length}! 🎉`);
   }
@@ -257,15 +383,6 @@ function LessonsPage() {
       <header className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-3 px-5 py-5 text-primary-foreground">
         <Link to="/dashboard" className="font-bold underline-offset-4 hover:underline">
           ← Dashboard
-        </Link>
-        <Link
-          to="/activity"
-          onClick={() =>
-            track({ context, component: "Navigation", event: "Link clicked", target: "Activity", childId })
-          }
-          className="rounded-full bg-card/20 px-4 py-1 font-bold backdrop-blur"
-        >
-          📊 My activity
         </Link>
       </header>
 
@@ -307,6 +424,28 @@ function LessonsPage() {
             >
               🔊 Listen
             </button>
+          </div>
+
+          {/* TEACHING VIDEO */}
+          <div className="mt-6">
+            <video
+              key={module.id}
+              ref={videoRef}
+              src={module.video.src}
+              poster={module.video.poster}
+              controls
+              playsInline
+              className="w-full rounded-2xl bg-black shadow-pop"
+              onPlay={onVideoPlay}
+              onPause={onVideoPause}
+              onSeeked={onVideoSeeked}
+              onRateChange={onVideoRateChange}
+              onTimeUpdate={onVideoTimeUpdate}
+              onEnded={onVideoEnded}
+            />
+            <p className="mt-2 text-center text-lg font-bold text-muted-foreground">
+              {module.video.caption}
+            </p>
           </div>
 
           {/* SIMPLE STEPS */}
