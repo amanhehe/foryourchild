@@ -1,0 +1,161 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://fbeukpeehvdvyflumjbs.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "remix-of-buddy-s-brilliant-bites",
+      "version": "0.1.0",
+      "title": "Remix of Buddy's Brilliant Bites"
+    },
+    "tools": [
+      {
+        "name": "list_children",
+        "title": "List children",
+        "description": "List the signed-in parent's child profiles with their id, name, age, reading level, level, XP, coins and streak.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {}
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_child_progress",
+        "title": "Get child progress",
+        "description": "Get one child's full reading progress: level, XP, coins, streak, literacy score and recent quiz attempts.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "child_id": {
+              "type": "string",
+              "format": "uuid",
+              "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$",
+              "description": "The child's id from list_children."
+            }
+          },
+          "required": [
+            "child_id"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_activity",
+        "title": "List learning activity",
+        "description": "List recent clickstream learning events (page views, clicks, quiz and practice events) for the signed-in account, newest first.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "child_id": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "uuid",
+                  "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Optional child id to filter by; null for all."
+            },
+            "limit": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "How many events to return (default 50, max 200)."
+            }
+          },
+          "required": [
+            "child_id",
+            "limit"
+          ]
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "add_child",
+        "title": "Add a child profile",
+        "description": "Create a new child profile on the signed-in parent's account.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "$schema": "http://json-schema.org/draft-07/schema#",
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The child's first name."
+            },
+            "age": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The child's age in years, or null."
+            },
+            "reading_level": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Reading level such as 'beginner', 'early reader' or 'confident'. Null for default."
+            }
+          },
+          "required": [
+            "name",
+            "age",
+            "reading_level"
+          ]
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
