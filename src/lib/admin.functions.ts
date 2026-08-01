@@ -15,7 +15,7 @@ export type AdminEvent = {
   target: string | null;
   action: string | null;
   route: string | null;
-  meta: Record<string, unknown>;
+  meta: Record<string, string | number | boolean | null>;
 };
 
 /**
