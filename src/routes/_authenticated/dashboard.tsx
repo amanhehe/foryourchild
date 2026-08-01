@@ -47,7 +47,7 @@ type GuestClassMembership = {
 };
 
 function Dashboard() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, roles, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const joinRoom = useServerFn(joinClassroom);
   const listJoinedRooms = useServerFn(listChildClassrooms);
@@ -314,6 +314,14 @@ function Dashboard() {
           >
             🍎 Teacher
           </Link>
+          {roles.includes("admin") && (
+            <Link
+              to="/admin"
+              className="rounded-full border-2 border-border px-4 py-2 text-sm font-bold transition-transform hover:scale-105"
+            >
+              🔒 Research
+            </Link>
+          )}
           <button
             onClick={signOut}
             className="rounded-full border-2 border-border px-4 py-2 text-sm font-bold transition-transform hover:scale-105"

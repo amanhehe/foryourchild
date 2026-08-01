@@ -1,0 +1,2 @@
+CREATE POLICY "Admins read all events" ON public.learning_events FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
+CREATE POLICY "Admins read all quiz attempts" ON public.quiz_attempts FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
