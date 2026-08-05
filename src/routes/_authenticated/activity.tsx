@@ -112,6 +112,13 @@ function ActivityPage() {
             Every page view, tap, lesson step, game and quiz attempt from this account, in the same
             format as a Moodle log export.
           </p>
+          <p className="mt-3 inline-block rounded-full bg-secondary/60 px-4 py-1.5 text-sm font-bold">
+            {signedIn
+              ? "✅ Live data from your account (stored in the database)"
+              : "⚠️ Guest mode — events are only stored on this device. Sign in to record real, saved data."}
+          </p>
+
+
 
           <div className="mt-6 grid grid-cols-3 gap-3">
             {[
