@@ -307,7 +307,13 @@ function Dashboard() {
             className="rounded-full border-2 border-border px-4 py-2 text-sm font-bold transition-transform hover:scale-105"
           >
             🍎 Teacher
+          <Link
+            to="/activity"
+            className="rounded-full border-2 border-border px-4 py-2 text-sm font-bold transition-transform hover:scale-105"
+          >
+            📊 Activity
           </Link>
+
           {roles.includes("admin") && (
             <Link
               to="/admin"
