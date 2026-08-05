@@ -33,18 +33,24 @@ export const Route = createFileRoute("/_authenticated/activity")({
 function ActivityPage() {
   const [events, setEvents] = useState<ClickEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [signedIn, setSignedIn] = useState(false);
 
   async function load() {
     setLoading(true);
     const { data: sessionData } = await supabase.auth.getSession();
     if (sessionData.session) {
+      setSignedIn(true);
+      // Move any locally buffered events into the database first, so the table
+      // below is always the real stored clickstream.
+      await syncGuestEvents();
       const { data } = await supabase
         .from("learning_events")
         .select("*")
         .order("occurred_at", { ascending: false })
         .limit(1000);
-      setEvents(((data ?? []) as unknown as ClickEvent[]).concat(readGuestEvents().reverse()));
+      setEvents((data ?? []) as unknown as ClickEvent[]);
     } else {
+      setSignedIn(false);
       setEvents(readGuestEvents().slice().reverse());
     }
     setLoading(false);
@@ -56,6 +62,7 @@ function ActivityPage() {
 
   const sessions = new Set(events.map((e) => e.session_id)).size;
   const quizzes = events.filter((e) => /quiz/i.test(e.event_name)).length;
+
 
   return (
     <div className="min-h-screen bg-gradient-hero pb-16">
