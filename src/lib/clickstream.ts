@@ -103,7 +103,7 @@ export async function track(input: TrackInput): Promise<void> {
       event_context: input.context,
       component: input.component,
       event_name: input.event,
-      description: describe(input, user?.id ?? "guest"),
+      description: describe(input, user?.email ?? user?.id ?? "guest"),
       origin: "web",
       target: input.target ?? null,
       action: input.action ?? null,
@@ -129,6 +129,42 @@ export async function track(input: TrackInput): Promise<void> {
     /* tracking must never break the app */
   }
 }
+
+/**
+ * Upload any locally buffered (guest/offline) events into the database for the
+ * signed-in user, so the activity log always reflects real stored data.
+ * Returns the number of rows migrated.
+ */
+export async function syncGuestEvents(): Promise<number> {
+  if (!isBrowser()) return 0;
+  const buffered = readGuestEvents();
+  if (!buffered.length) return 0;
+  const { data } = await supabase.auth.getSession();
+  const user = data.session?.user;
+  if (!user) return 0;
+
+  const rows = buffered.map((e) => ({
+    user_id: user.id,
+    child_id: e.child_id && !e.child_id.startsWith("guest-") ? e.child_id : null,
+    session_id: e.session_id,
+    occurred_at: e.occurred_at,
+    event_context: e.event_context,
+    component: e.component,
+    event_name: e.event_name,
+    description: e.description,
+    origin: e.origin,
+    target: e.target,
+    action: e.action,
+    route: e.route,
+    meta: (e.meta ?? {}) as never,
+  }));
+
+  const { error } = await supabase.from("learning_events").insert(rows);
+  if (error) return 0;
+  clearGuestEvents();
+  return rows.length;
+}
+
 
 /** Moodle-compatible CSV export. */
 export function eventsToCsv(events: ClickEvent[]): string {
