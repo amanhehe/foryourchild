@@ -6,6 +6,7 @@ import {
   eventsToCsv,
   readGuestEvents,
   clearGuestEvents,
+  syncGuestEvents,
   type ClickEvent,
 } from "@/lib/clickstream";
 
