@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
+import { YouTubeLesson } from "@/components/youtube-lesson";
 import { track } from "@/lib/clickstream";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -30,7 +31,7 @@ type Module = {
   title: string;
   emoji: string;
   say: string;
-  video: { src: string; poster?: string; caption: string };
+  video: { youtubeId: string; caption: string };
   steps: { emoji: string; line: string; speak: string }[];
   words: { word: string; emoji: string }[];
   quiz: { q: string; options: { label: string; emoji: string }[]; answer: number }[];
@@ -43,7 +44,7 @@ const MODULES: Module[] = [
     emoji: "🍎",
     say: "a says ah, like in cat",
     video: {
-      src: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      youtubeId: "hq3yfQnllfQ",
       caption: "Watch: the short 'a' sound in cat, hat and bat",
     },
     steps: [
@@ -90,7 +91,7 @@ const MODULES: Module[] = [
     emoji: "🤫",
     say: "sh says shhh, like a quiet sound",
     video: {
-      src: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4",
+      youtubeId: "saF3-f0XWAY",
       caption: "Watch: the 'sh' sound in ship, shell and fish",
     },
     steps: [
@@ -137,7 +138,7 @@ const MODULES: Module[] = [
     emoji: "✨",
     say: "magic e makes the vowel say its name",
     video: {
-      src: "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4",
+      youtubeId: "BELlZKpi1Zs",
       caption: "Watch: how magic e turns kit into kite",
     },
     steps: [
@@ -198,9 +199,6 @@ function LessonsPage() {
 
   const module = MODULES[active]!;
   const context = `Course: Phonics Buddy — ${module.title}`;
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const seenMilestones = useRef<Set<number>>(new Set());
-  const lastRate = useRef<number>(1);
 
   useEffect(() => {
     track({
@@ -214,98 +212,7 @@ function LessonsPage() {
     setAnswers([]);
     setSubmitted(false);
     startedAt.current = Date.now();
-    seenMilestones.current = new Set();
-    lastRate.current = 1;
   }, [active, childId, context, module.id]);
-
-  function videoPosition() {
-    const v = videoRef.current;
-    if (!v || !Number.isFinite(v.duration) || v.duration <= 0) return { position: 0, percent: 0 };
-    return { position: v.currentTime, percent: Math.round((v.currentTime / v.duration) * 100) };
-  }
-
-  function onVideoPlay() {
-    track({
-      context,
-      component: "Video",
-      event: "Video played",
-      target: module.id,
-      action: "play",
-      childId,
-      meta: videoPosition(),
-    });
-  }
-
-  function onVideoPause() {
-    const v = videoRef.current;
-    if (v && v.ended) return; // "completed" event covers this
-    track({
-      context,
-      component: "Video",
-      event: "Video paused",
-      target: module.id,
-      action: "pause",
-      childId,
-      meta: videoPosition(),
-    });
-  }
-
-  function onVideoSeeked() {
-    track({
-      context,
-      component: "Video",
-      event: "Video seeked",
-      target: module.id,
-      action: "seek",
-      childId,
-      meta: videoPosition(),
-    });
-  }
-
-  function onVideoRateChange() {
-    const v = videoRef.current;
-    if (!v || v.playbackRate === lastRate.current) return;
-    lastRate.current = v.playbackRate;
-    track({
-      context,
-      component: "Video",
-      event: "Video speed changed",
-      target: module.id,
-      action: "rate-change",
-      childId,
-      meta: { ...videoPosition(), playbackRate: v.playbackRate },
-    });
-  }
-
-  function onVideoTimeUpdate() {
-    const { percent, position } = videoPosition();
-    for (const milestone of [25, 50, 75]) {
-      if (percent >= milestone && !seenMilestones.current.has(milestone)) {
-        seenMilestones.current.add(milestone);
-        track({
-          context,
-          component: "Video",
-          event: `Video ${milestone}% reached`,
-          target: module.id,
-          action: "progress",
-          childId,
-          meta: { position, percent: milestone },
-        });
-      }
-    }
-  }
-
-  function onVideoEnded() {
-    track({
-      context,
-      component: "Video",
-      event: "Video completed",
-      target: module.id,
-      action: "complete",
-      childId,
-      meta: videoPosition(),
-    });
-  }
 
   function sayIt(text: string, target: string, event = "Audio played") {
     speak(text);
@@ -428,20 +335,21 @@ function LessonsPage() {
 
           {/* TEACHING VIDEO */}
           <div className="mt-6">
-            <video
+            <YouTubeLesson
               key={module.id}
-              ref={videoRef}
-              src={module.video.src}
-              poster={module.video.poster}
-              controls
-              playsInline
-              className="w-full rounded-2xl bg-black shadow-pop"
-              onPlay={onVideoPlay}
-              onPause={onVideoPause}
-              onSeeked={onVideoSeeked}
-              onRateChange={onVideoRateChange}
-              onTimeUpdate={onVideoTimeUpdate}
-              onEnded={onVideoEnded}
+              videoId={module.video.youtubeId}
+              title={module.video.caption}
+              onEvent={(event, action, meta) =>
+                track({
+                  context,
+                  component: "Video",
+                  event,
+                  target: module.id,
+                  action,
+                  childId,
+                  meta,
+                })
+              }
             />
             <p className="mt-2 text-center text-lg font-bold text-muted-foreground">
               {module.video.caption}
