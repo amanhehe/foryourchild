@@ -307,7 +307,9 @@ function Dashboard() {
             className="rounded-full border-2 border-border px-4 py-2 text-sm font-bold transition-transform hover:scale-105"
           >
             🍎 Teacher
+          </Link>
           <Link
+
             to="/activity"
             className="rounded-full border-2 border-border px-4 py-2 text-sm font-bold transition-transform hover:scale-105"
           >
